@@ -1009,13 +1009,6 @@ public:
     ab::apply_affecting_aura( p->talent.deeper_stratagem );
     ab::apply_affecting_aura( p->talent.master_poisoner );
     ab::apply_affecting_aura( p->talent.dancing_steel );
-    ab::apply_affecting_aura( p->legendary.tiny_toxic_blade );
-
-    // Affecting Passive Conduits
-    ab::apply_affecting_conduit( p->conduit.lashing_scars );
-    ab::apply_affecting_conduit( p->conduit.lethal_poisons );
-    ab::apply_affecting_conduit( p->conduit.poisoned_katar );
-    ab::apply_affecting_conduit( p->conduit.reverberation );
 
     // Dynamically affected flags
     // Special things like CP, Energy, Crit, etc.
@@ -1032,24 +1025,7 @@ public:
     affected_by.symbols_of_death_autocrit = ab::data().affected_by( p->spec.symbols_of_death_autocrit->effectN( 1 ) );
     affected_by.blindside = ab::data().affected_by( p->find_spell( 121153 )->effectN( 1 ) );
     affected_by.between_the_eyes = ab::data().affected_by( p->spec.between_the_eyes->effectN( 2 ) );
-    if ( p->legendary.master_assassins_mark.ok() )
-    {
-      affected_by.master_assassins_mark = ab::data().affected_by( p->find_spell( 340094 )->effectN( 1 ) );
-    }
-    if ( p->legendary.dashing_scoundrel.ok() )
-    {
-      affected_by.dashing_scoundrel = ab::data().affected_by( p->spec.envenom->effectN( 3 ) );
-    }
-    if ( p->legendary.zoldyck_insignia.ok() )
-    {
-      // Not in spell data. Using the mastery whitelist as a baseline, most seem to apply
-      affected_by.zoldyck_insignia = ab::data().affected_by( p->mastery.potent_assassin->effectN( 1 ) ) ||
-                                     ab::data().affected_by( p->mastery.potent_assassin->effectN( 2 ) );
-    }
-    if ( p->covenant.sepsis_buff->ok() )
-    {
-      affected_by.sepsis = ab::data().affected_by( p->covenant.sepsis_buff->effectN( 1 ) );
-    }
+   
 
     // Auto-parsing for damage affecting dynamic flags, this reads IF direct/periodic dmg is affected and stores by how much.
     // Still requires manual impl below but removes need to hardcode effect numbers.
@@ -1209,17 +1185,6 @@ public:
   {
     int consume_cp = as<int>( std::min( p()->resources.current[ RESOURCE_COMBO_POINT ], p()->consume_cp_max() ) );
     int effective_cp = consume_cp;
-
-    // Apply and Snapshot Echoing Reprimand Buffs
-    if ( p()->covenant.echoing_reprimand->ok() && consumes_echoing_reprimand() )
-    {
-      if ( ( consume_cp == 2 && p()->buffs.echoing_reprimand_2->up() ) || 
-           ( consume_cp == 3 && p()->buffs.echoing_reprimand_3->up() ) || 
-           ( consume_cp == 4 && p()->buffs.echoing_reprimand_4->up() ) )
-      {
-        effective_cp = as<int>( p()->covenant.echoing_reprimand->effectN( 2 ).base_value() );
-      }
-    }
 
     cast_state( state )->set_combo_points( consume_cp, effective_cp );
 
@@ -1449,12 +1414,7 @@ public:
       m *= td( target )->debuffs.shiv->value_direct();
     }
 
-    if ( p()->legendary.zoldyck_insignia->ok() && affected_by.zoldyck_insignia
-         && target->health_percentage() < p()->legendary.zoldyck_insignia->effectN( 2 ).base_value() )
-    {
-      m *= 1.0 + p()->legendary.zoldyck_insignia->effectN( 1 ).percent();
-    }
-
+    
     return m;
   }
 
@@ -1499,10 +1459,6 @@ public:
       c += p()->buffs.symbols_of_death_autocrit->stack_value();
     }
 
-    if ( affected_by.dashing_scoundrel && p()->buffs.envenom->check() )
-    {
-      c += p()->legendary.dashing_scoundrel->effectN( 1 ).percent();
-    }
 
     return c;
   }
@@ -1561,24 +1517,7 @@ public:
     {
       trigger_energy_refund( ab::execute_state );
     }
-    else
-    {
-      if ( ab::current_resource() == RESOURCE_ENERGY && ab::last_resource_cost > 0 )
-      {
-        // Dustwalker's Patch Legendary
-        if ( p()->legendary.duskwalkers_patch.ok() )
-        {
-          p()->legendary.duskwalkers_patch_counter += ab::last_resource_cost;
-          if ( p()->legendary.duskwalkers_patch_counter > p()->legendary.duskwalkers_patch->effectN( 2 ).base_value() )
-          {
-            double reduction = floor( p()->legendary.duskwalkers_patch_counter / p()->legendary.duskwalkers_patch->effectN( 2 ).base_value() );
-            p()->cooldowns.vendetta->adjust( -timespan_t::from_seconds( p()->legendary.duskwalkers_patch->effectN( 1 ).base_value() ) * reduction );
-            p()->legendary.duskwalkers_patch_counter -= p()->legendary.duskwalkers_patch->effectN( 2 ).base_value() * reduction;
-            p()->procs.dustwalker_patch->occur();
-          }
-        }
-      }
-    }
+    
   }
 
   void execute() override
@@ -4632,8 +4571,7 @@ struct stealth_like_buff_t : public BuffBase
     {
       if ( rogue->talent.master_assassin->ok() )
         rogue->buffs.master_assassin_aura->trigger();
-      if ( rogue->legendary.master_assassins_mark->ok() )
-        rogue->buffs.master_assassins_mark_aura->trigger();
+      
     }
 
     if ( rogue->talent.premeditation->ok() && rogue->stealthed( STEALTH_BASIC | STEALTH_SHADOWDANCE ) )
@@ -5132,9 +5070,7 @@ void actions::rogue_action_t<Base>::trigger_main_gauche( const action_state_t* s
     return;
 
   double proc_chance = p()->mastery.main_gauche->proc_chance();
-  if ( p()->conduit.ambidexterity.ok() && p()->buffs.blade_flurry->check() )
-    proc_chance += p()->conduit.ambidexterity.percent();
-
+ 
   if ( !p()->rng().roll( proc_chance ) )
     return;
 
@@ -5332,8 +5268,7 @@ void actions::rogue_action_t<Base>::trigger_shadow_techniques( const action_stat
     p()->shadow_techniques = 0;
     p()->resource_gain( RESOURCE_ENERGY, p()->spec.shadow_techniques_effect->effectN( 2 ).base_value(), p()->gains.shadow_techniques, state->action );
     trigger_combo_point_gain( as<int>( p()->spec.shadow_techniques_effect->effectN( 1 ).base_value() ), p()->gains.shadow_techniques );
-    if ( p()->conduit.stiletto_staccato.ok() )
-      p()->cooldowns.shadow_blades->adjust( -p()->conduit.stiletto_staccato.time_value( conduit_data_t::time_type::S ), true );
+   
   }
 }
 
@@ -5499,47 +5434,7 @@ void actions::rogue_action_t<Base>::spend_combo_points( const action_state_t* st
     p()->cooldowns.secret_technique->adjust( sectec_cdr, false );
   }
 
-  // Proc Flagellation Damage Triggers
-  if ( p()->covenant.flagellation->ok() )
-  {
-    buff_t* debuff = p()->active.flagellation->debuff;
-    if ( debuff && debuff->up() )
-    {
-      p()->buffs.flagellation->trigger( as<int>(max_spend) );
-      p()->active.flagellation->trigger_secondary_action( debuff->player, as<int>( max_spend ), 0.75_s );
-    }
-  }
-
-  // Remove Echoing Reprimand Buffs
-  if ( p()->covenant.echoing_reprimand->ok() && consumes_echoing_reprimand() )
-  {
-    const rogue_action_state_t* rs = cast_state( state );
-    int base_cp = rs->get_combo_points( true );
-    if ( rs->get_combo_points() > base_cp )
-    {
-      if ( base_cp == 2 )
-      {
-        assert( p()->buffs.echoing_reprimand_2->check() );
-        p()->buffs.echoing_reprimand_2->expire();
-        p()->procs.echoing_reprimand_2->occur();
-        animacharged_cp_proc->occur();
-      }
-      else if ( base_cp == 3 )
-      {
-        assert( p()->buffs.echoing_reprimand_3->check() );
-        p()->buffs.echoing_reprimand_3->expire();
-        p()->procs.echoing_reprimand_3->occur();
-        animacharged_cp_proc->occur();
-      }
-      else if ( base_cp == 4 )
-      {
-        assert( p()->buffs.echoing_reprimand_4->check() );
-        p()->buffs.echoing_reprimand_4->expire();
-        p()->procs.echoing_reprimand_4->occur();
-        animacharged_cp_proc->occur();
-      }
-    }
-  }
+ 
 }
 
 template <typename Base>
@@ -5601,19 +5496,8 @@ void actions::rogue_action_t<Base>::trigger_master_of_shadows()
 }
 
 template <typename Base>
-void actions::rogue_action_t<Base>::trigger_akaaris_soul_fragment( const action_state_t* state )
-{
-  if ( !ab::result_is_hit( state->result ) || !p()->legendary.akaaris_soul_fragment->ok() || ab::background )
-    return;
-
-  td( state->target )->debuffs.akaaris_soul_fragment->trigger();
-}
-
-template <typename Base>
 void actions::rogue_action_t<Base>::trigger_bloodfang( const action_state_t* state )
 {
-  if ( !ab::result_is_hit( state->result ) || !p()->legendary.essence_of_bloodfang->ok() || !p()->active.bloodfang )
-    return;
 
   if ( ab::energize_type == action_energize::NONE || ab::energize_resource != RESOURCE_COMBO_POINT )
     return;
@@ -5621,75 +5505,24 @@ void actions::rogue_action_t<Base>::trigger_bloodfang( const action_state_t* sta
   if ( p()->active.bloodfang->internal_cooldown->down() )
     return;
 
-  if ( !p()->rng().roll( p()->legendary.essence_of_bloodfang->proc_chance() ) )
-    return;
 
   p()->active.bloodfang->set_target( state->target );
   p()->active.bloodfang->execute();
   p()->active.bloodfang->internal_cooldown->start();
 }
 
-template <typename Base>
-void actions::rogue_action_t<Base>::trigger_dashing_scoundrel( const action_state_t* state )
-{
-  if ( !p()->legendary.dashing_scoundrel->ok() )
-    return;
-
-  // 02/21/2021 -- Use the Crit-modifier whitelist to control this as it currently matches
-  if ( !affected_by.dashing_scoundrel || state->result != RESULT_CRIT || !p()->buffs.envenom->check() )
-    return;
-
-  p()->resource_gain( RESOURCE_ENERGY, p()->legendary.dashing_scoundrel_gain, p()->gains.dashing_scoundrel );
-}
-
-template <typename Base>
-void actions::rogue_action_t<Base>::trigger_guile_charm( const action_state_t* state )
-{
-  if ( !ab::result_is_hit( state->result ) || !p()->legendary.guile_charm.ok() )
-    return;
-
-  if ( p()->buffs.guile_charm_insight_3->check() )
-    return;
-
-  bool trigger_next_insight = ( ++p()->legendary.guile_charm_counter >= 4 );
-
-  if ( p()->buffs.guile_charm_insight_1->check() )
-  {
-    if( trigger_next_insight )
-      p()->buffs.guile_charm_insight_2->trigger();
-    else
-      p()->buffs.guile_charm_insight_1->refresh();
-  }
-  else if ( p()->buffs.guile_charm_insight_2->check() )
-  {
-    if ( trigger_next_insight )
-      p()->buffs.guile_charm_insight_3->trigger();
-    else
-      p()->buffs.guile_charm_insight_2->refresh();
-  }
-  else if( trigger_next_insight )
-  {
-    p()->buffs.guile_charm_insight_1->trigger();
-  }
-}
 
 template <typename Base>
 void actions::rogue_action_t<Base>::trigger_count_the_odds( const action_state_t* state )
 {
-  if ( !ab::result_is_hit( state->result ) || !p()->conduit.count_the_odds.ok() )
-    return;
 
   // Currently it appears all Rogues can trigger this with Ambush
   if ( !p()->bugs && p()->specialization() != ROGUE_OUTLAW )
     return;
 
   // 1/8/2020 - Confirmed via logs this works with Shadowmeld
-  const double stealth_bonus = p()->stealthed( STEALTH_BASIC | STEALTH_SHADOWMELD ) ? 1.0 + p()->conduit.count_the_odds->effectN( 3 ).percent() : 1.0;
-  if ( !p()->rng().roll( p()->conduit.count_the_odds.percent() * stealth_bonus ) )
-    return;
+  const double stealth_bonus = p()->stealthed( STEALTH_BASIC | STEALTH_SHADOWMELD ) ? 1.0 : 1.0;
 
-  const timespan_t trigger_duration = timespan_t::from_seconds( p()->conduit.count_the_odds->effectN( 2 ).base_value() ) * stealth_bonus;
-  debug_cast<buffs::roll_the_bones_t*>( p()->buffs.roll_the_bones )->count_the_odds_trigger( trigger_duration );
   p()->procs.count_the_odds->occur();
 }
 
