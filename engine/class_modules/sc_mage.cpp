@@ -4,7 +4,6 @@
 // ==========================================================================
 
 #include "simulationcraft.hpp"
-#include "player/covenant.hpp"
 #include "util/util.hpp"
 #include "class_modules/apl/mage.hpp"
 
@@ -684,62 +683,6 @@ public:
     const spell_data_t* glacial_spike;
   } talents;
 
-  // Runeforge Legendaries
-  struct runeforge_legendaries_t
-  {
-    // Arcane
-    item_runeforge_t arcane_bombardment;
-    item_runeforge_t arcane_harmony;
-    item_runeforge_t siphon_storm;
-    item_runeforge_t temporal_warp;
-
-    // Fire
-    item_runeforge_t fevered_incantation;
-    item_runeforge_t firestorm;
-    item_runeforge_t molten_skyfall;
-    item_runeforge_t sun_kings_blessing;
-
-    // Frost
-    item_runeforge_t cold_front;
-    item_runeforge_t freezing_winds;
-    item_runeforge_t glacial_fragments;
-    item_runeforge_t slick_ice;
-
-    // Shared
-    item_runeforge_t disciplinary_command;
-    item_runeforge_t expanded_potential;
-    item_runeforge_t grisly_icicle;
-  } runeforge;
-
-  // Soulbind Conduits
-  struct soulbind_conduits_t
-  {
-    // Arcane
-    conduit_data_t arcane_prodigy;
-    conduit_data_t artifice_of_the_archmage;
-    conduit_data_t magis_brand;
-    conduit_data_t nether_precision;
-
-    // Fire
-    conduit_data_t controlled_destruction;
-    conduit_data_t flame_accretion;
-    conduit_data_t infernal_cascade;
-    conduit_data_t master_flame;
-
-    // Frost
-    conduit_data_t ice_bite;
-    conduit_data_t icy_propulsion;
-    conduit_data_t shivering_core;
-    conduit_data_t unrelenting_cold;
-
-    // Shared
-    conduit_data_t discipline_of_the_grove;
-    conduit_data_t flow_of_time;
-    conduit_data_t gift_of_the_lich;
-    conduit_data_t grounding_surge;
-    conduit_data_t ire_of_the_ascended;
-    conduit_data_t siphoned_malice;
-  } conduits;
 
   struct uptimes_t
   {

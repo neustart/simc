@@ -677,91 +677,12 @@ public:
     const spell_data_t* flourish;
   } talent;
 
-  // Covenant
-  struct covenant_t
-  {
-    // Kyrian
-    const spell_data_t* kyrian;        // kindred spirits
-    const spell_data_t* empower_bond;  // the actual action
-    const spell_data_t* kindred_empowerment;
-    const spell_data_t* kindred_empowerment_energize;
-    const spell_data_t* kindred_empowerment_damage;
-
-    // Night Fae
-    const spell_data_t* night_fae;  // convoke the spirits
-
-    // Venthyr
-    const spell_data_t* venthyr;  // ravenous frenzy
-
-    // Necrolord
-    const spell_data_t* necrolord;  // adaptive swarm
-    const spell_data_t* adaptive_swarm_damage;
-    const spell_data_t* adaptive_swarm_heal;
-  } covenant;
-
-  // Conduits
-  struct conduit_t
-  {
-    conduit_data_t stellar_inspiration;
-    conduit_data_t precise_alignment;
-    conduit_data_t fury_of_the_skies;
-    conduit_data_t umbral_intensity;
-
-    conduit_data_t taste_for_blood;
-    conduit_data_t incessant_hunter;
-    conduit_data_t sudden_ambush;
-    conduit_data_t carnivorous_instinct;
-
-    conduit_data_t unchecked_aggression;
-    conduit_data_t savage_combatant;
-    conduit_data_t layered_mane;
-
-    conduit_data_t deep_allegiance;
-    conduit_data_t evolved_swarm;
-    conduit_data_t conflux_of_elements;
-    conduit_data_t endless_thirst;
-
-    conduit_data_t tough_as_bark;
-    conduit_data_t ursine_vigor;
-    conduit_data_t innate_resolve;
-
-    conduit_data_t front_of_the_pack;
-    conduit_data_t born_of_the_wilds;
-  } conduit;
-
   struct uptimes_t
   {
     uptime_t* primordial_arcanic_pulsar;
     uptime_t* combined_ca_inc;
     uptime_t* eclipse;
   } uptime;
-
-  struct legendary_t
-  {
-    // General
-    item_runeforge_t oath_of_the_elder_druid;   // 7084
-    item_runeforge_t circle_of_life_and_death;  // 7085
-    item_runeforge_t draught_of_deep_focus;     // 7086
-    item_runeforge_t lycaras_fleeting_glimpse;  // 7110
-
-    // Balance
-    item_runeforge_t oneths_clear_vision;        // 7087
-    item_runeforge_t primordial_arcanic_pulsar;  // 7088
-    item_runeforge_t balance_of_all_things;      // 7107
-    item_runeforge_t timeworn_dreambinder;       // 7108
-
-    // Feral
-    item_runeforge_t cateye_curio;             // 7089
-    item_runeforge_t eye_of_fearful_symmetry;  // 7090
-    item_runeforge_t apex_predators_craving;   // 7091
-    item_runeforge_t frenzyband;               // 7109
-
-    // Guardian
-    item_runeforge_t luffainfused_embrace;     // 7092
-    item_runeforge_t the_natural_orders_will;  // 7093
-    item_runeforge_t ursocs_fury_remembered;   // 7094
-    item_runeforge_t legacy_of_the_sleeper;    // 7095
-  } legendary;
 
   druid_t( sim_t* sim, util::string_view name, race_e r = RACE_NIGHT_ELF )
     : player_t( sim, DRUID, name, r ),
@@ -797,10 +718,7 @@ public:
       proc( procs_t() ),
       spec( specializations_t() ),
       talent( talents_t() ),
-      covenant( covenant_t() ),
-      conduit( conduit_t() ),
-      uptime( uptimes_t() ),
-      legendary( legendary_t() )
+      uptime( uptimes_t() )
   {
     cooldown.berserk             = get_cooldown( "berserk" );
     cooldown.celestial_alignment = get_cooldown( "celestial_alignment" );

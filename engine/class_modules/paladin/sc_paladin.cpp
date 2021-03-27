@@ -192,8 +192,6 @@ struct avenging_wrath_t : public paladin_spell_t
 
     p() -> buffs.avenging_wrath -> trigger();
 
-    if ( p() -> azerite.avengers_might.ok() )
-      p() -> buffs.avengers_might -> trigger( 1, p() -> buffs.avengers_might -> default_value, -1.0, p() -> buffs.avenging_wrath -> buff_duration() );
   }
 };
 
@@ -245,7 +243,6 @@ struct golden_path_t : public paladin_heal_t
     paladin_heal_t( "golden_path", p, p -> find_spell( 339119 ) )
   {
     background = true;
-    base_multiplier *= p -> conduit.golden_path.percent();
   }
 };
 
@@ -268,8 +265,6 @@ struct consecration_tick_t : public paladin_spell_t
   void execute() override
   {
     paladin_spell_t::execute();
-    if ( p() -> conduit.golden_path -> ok() && p() -> standing_in_consecration() )
-      heal_tick -> execute();
   }
 };
 
@@ -703,13 +698,6 @@ struct melee_t : public paladin_melee_attack_t
         }
       }
 
-      if ( p() -> buffs.virtuous_command -> up() && p() -> active.virtuous_command )
-      {
-        action_t* vc = p() -> active.virtuous_command;
-        vc -> base_dd_min = vc -> base_dd_max = execute_state -> result_amount * p() -> conduit.virtuous_command.percent();
-        vc -> set_target( execute_state -> target );
-        vc -> schedule_execute();
-      }
     }
   }
 };
@@ -798,14 +786,6 @@ struct crusader_strike_t : public paladin_melee_attack_t
         }
       }
 
-      if ( p() -> buffs.virtuous_command -> up() && p() -> active.virtuous_command )
-      {
-        action_t* vc = p() -> active.virtuous_command;
-        vc -> base_dd_min = vc -> base_dd_max = s -> result_amount * p() -> conduit.virtuous_command.percent();
-        vc -> set_target( s-> target );
-        vc -> schedule_execute();
-      }
-
       if ( p() -> specialization() == PALADIN_RETRIBUTION )
       {
         p() -> resource_gain( RESOURCE_HOLY_POWER, p() -> spec.retribution_paladin -> effectN( 14 ).base_value(), p() -> gains.hp_cs );
@@ -868,21 +848,7 @@ void judgment_t::do_ctor_common( paladin_t* p )
   weapon_multiplier = 0.0;
   may_block = may_parry = may_dodge = false;
 
-  // Handle indomitable justice option
-  if ( p -> azerite.indomitable_justice.enabled() )
-  {
-    // If using the default setting, set to 80% hp for protection, 100% hp for other specs
-    if ( p -> options.indomitable_justice_pct == 0 )
-    {
-      indomitable_justice_pct = p -> specialization() == PALADIN_PROTECTION ? 80 : 100;
-    }
-    // Else, clamp the value between -1 ("real" usage) and 100
-    else
-    {
-      indomitable_justice_pct = clamp<int>( p -> options.indomitable_justice_pct, -1, 100 );
-    }
-  }
-
+  
   //rank 2 multiplier
   if ( p -> spells.judgment_2 -> ok() )
   {
@@ -906,23 +872,7 @@ judgment_t::judgment_t( paladin_t* p ) :
 double judgment_t::bonus_da( const action_state_t* s ) const
 {
   double da = paladin_melee_attack_t::bonus_da( s );
-  if ( p() -> azerite.indomitable_justice.ok() )
-  {
-    double player_percent = indomitable_justice_pct < 0 ? p() -> health_percentage() : indomitable_justice_pct;
-    double target_percent = s -> target -> health_percentage();
-
-    if ( player_percent > target_percent )
-    {
-      double ij_bonus = p() -> azerite.indomitable_justice.value();
-
-      ij_bonus *= ( player_percent - target_percent ) / 100.0;
-
-      // Protection has a 50% damage reduction to IJ
-      ij_bonus *= 1.0 + p() -> spec.protection_paladin -> effectN( 15 ).percent();
-
-      da += ij_bonus;
-    }
-  }
+  
   return da;
 }
 
@@ -945,30 +895,7 @@ void judgment_t::impact( action_state_t* s )
 void judgment_t::execute()
 {
   paladin_melee_attack_t::execute();
-  if ( p() -> legendary.the_magistrates_judgment -> ok() )
-  {
-    double magistrate_chance;
-    switch ( p() -> specialization() )
-    {
-      case PALADIN_HOLY:
-        magistrate_chance = p() -> legendary.the_magistrates_judgment -> effectN( 1 ).percent();
-        break;
-      case PALADIN_PROTECTION:
-        magistrate_chance = p() -> legendary.the_magistrates_judgment -> effectN( 2 ).percent();
-        break;
-      case PALADIN_RETRIBUTION:
-      default:
-        magistrate_chance = p() -> legendary.the_magistrates_judgment -> effectN( 3 ).percent();
-    }
-    if ( p() -> cooldowns.the_magistrates_judgment_icd -> up() && rng().roll( magistrate_chance ) )
-    {
-      p() -> buffs.the_magistrates_judgment -> trigger();
-      p() -> cooldowns.the_magistrates_judgment_icd -> start();
-    }
-  }
-
-  if ( p() -> conduit.virtuous_command -> ok() )
-    p() -> buffs.virtuous_command -> trigger();
+  
 }
 
 // Rebuke ===================================================================

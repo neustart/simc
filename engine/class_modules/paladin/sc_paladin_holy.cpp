@@ -484,10 +484,6 @@ void paladin_t::create_holy_actions()
   if ( find_specialization_spell( "Beacon of Light" ) -> ok() )
     active.beacon_of_light = new beacon_of_light_heal_t( this );
 
-  if ( specialization() == PALADIN_HOLY )
-  {
-    active.divine_toll = new holy_shock_t( this );
-  }
 }
 
 action_t* paladin_t::create_action_holy( util::string_view name, const std::string& options_str )

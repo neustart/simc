@@ -50,11 +50,7 @@ struct avengers_shield_base_t : public paladin_spell_t
     may_crit = true;
 
     aoe = data().effectN( 1 ).chain_target();
-    if ( p -> azerite.soaring_shield.enabled() )
-    {
-      aoe = as<int>( p -> azerite.soaring_shield.spell() -> effectN( 2 ).base_value() );
-    }
-
+   
     // First Avenger hits +2 targets
     aoe += as<int>( p -> talents.first_avenger -> effectN( 1 ).base_value() );
   }
@@ -62,11 +58,6 @@ struct avengers_shield_base_t : public paladin_spell_t
   void impact( action_state_t* s ) override
   {
     paladin_spell_t::impact( s );
-
-    if ( p() -> azerite.soaring_shield.enabled() )
-    {
-      p() -> buffs.soaring_shield -> trigger();
-    }
 
     // First Avenger absorb shield. Amount is additive per hit.
     if ( p() -> talents.first_avenger -> ok() )
@@ -81,13 +72,6 @@ struct avengers_shield_base_t : public paladin_spell_t
         p() -> buffs.first_avenger_absorb -> trigger( 1, max_absorb );
     }
 
-    if ( p() -> conduit.vengeful_shock -> ok() )
-    {
-      td( s -> target ) -> debuff.vengeful_shock -> trigger();
-    }
-
-    if ( p() -> legendary.bulwark_of_righteous_fury -> ok() )
-      p() -> buffs.bulwark_of_righteous_fury -> trigger();
   }
 };
 
@@ -116,7 +100,6 @@ struct avengers_shield_t : public avengers_shield_base_t
 
     // Moment of Glory (MoG) will be consumed regardless of Holy Avengers Engraved Sigil (HAES) proc
     // If they happen at the same time, HAES proc will be considered wasted over MoG as its cost is higher
-    // Assuming Legendary > Talents > Baseline
     // Feel free to swap around these parts if the stance on the above changes
     if ( p() -> buffs.moment_of_glory -> up() )
     {
@@ -132,19 +115,6 @@ struct avengers_shield_t : public avengers_shield_base_t
       p() -> buffs.moment_of_glory -> decrement( 1 );
     }
 
-    if ( p() -> legendary.holy_avengers_engraved_sigil -> ok() &&
-      rng().roll( p() -> legendary.holy_avengers_engraved_sigil -> proc_chance() ) )
-    {
-      if ( ! wasted_reset )
-      {
-        // With 35% chance to proc, the average skill player can expect a proc to happen
-        p() -> cooldowns.avengers_shield -> reset( false );
-        p() -> procs.as_engraved_sigil -> occur();
-        wasted_reset = true;
-      }
-      else
-        p() -> procs.as_engraved_sigil_wasted -> occur();
-    }
   }
 
   double action_multiplier() const override
@@ -307,8 +277,6 @@ struct guardian_of_ancient_kings_t : public paladin_spell_t
     trigger_gcd = 0_ms;
     cooldown = p -> cooldowns.guardian_of_ancient_kings;
 
-    if ( p -> conduit.royal_decree -> ok() )
-      cooldown -> duration += p -> conduit.royal_decree.time_value();
   }
 
   void execute() override
@@ -459,23 +427,14 @@ struct word_of_glory_t : public holy_power_consumer_t<paladin_heal_t>
   void impact( action_state_t *s ) override
   {
     holy_power_consumer_t::impact( s );
-    if ( p() -> conduit.shielding_words -> ok() && s -> result_amount > 0 )
-    {
-      p() -> buffs.shielding_words -> trigger( 1,
-        s -> result_amount * p() -> conduit.shielding_words.percent()
-      );
-    }
+    
   }
 
   void execute() override
   {
     holy_power_consumer_t::execute();
 
-    if ( p() -> specialization() == PALADIN_PROTECTION && p() -> buffs.vanquishers_hammer -> up() )
-    {
-      p() -> buffs.vanquishers_hammer -> expire();
-      p() -> active.necrolord_shield_of_the_righteous -> execute();
-    }
+   
   }
 
   double action_multiplier() const override
@@ -517,10 +476,6 @@ void shield_of_the_righteous_buff_t::expire_override( int expiration_stacks, tim
 
   paladin_t* p = debug_cast< paladin_t* >( player );
 
-  if ( p -> azerite.inner_light.enabled() )
-  {
-    p -> buffs.inner_light -> trigger();
-  }
 }
 
 struct shield_of_the_righteous_t : public holy_power_consumer_t<paladin_melee_attack_t>
@@ -565,20 +520,6 @@ struct shield_of_the_righteous_t : public holy_power_consumer_t<paladin_melee_at
       p() -> buffs.redoubt -> trigger();
     }
 
-    if ( p() -> azerite_essence.memory_of_lucid_dreams.enabled() )
-    {
-      p() -> trigger_memory_of_lucid_dreams( 1.0 );
-    }
-
-    // As of 2020-11-07 Resolute Defender now always provides its CDR.
-    if ( p() -> conduit.resolute_defender -> ok() )
-    {
-      p() -> cooldowns.ardent_defender -> adjust( -1.0_s * p() -> conduit.resolute_defender.value() );
-      if ( p() -> buffs.ardent_defender -> up() )
-        p() -> buffs.ardent_defender -> extend_duration( p(),
-          p() -> conduit.resolute_defender -> effectN( 2 ).percent() * p() -> buffs.ardent_defender -> buff_duration()
-        );
-    }
 
     if ( !background )
     {
@@ -591,7 +532,6 @@ struct shield_of_the_righteous_t : public holy_power_consumer_t<paladin_melee_at
         p() -> buffs.shining_light_stacks -> trigger();
     }
 
-    p() -> buffs.bulwark_of_righteous_fury -> expire();
   }
 
   double recharge_multiplier( const cooldown_t& cd ) const override
@@ -609,16 +549,13 @@ struct shield_of_the_righteous_t : public holy_power_consumer_t<paladin_melee_at
   double composite_target_multiplier( player_t* t ) const override
   {
     double ctm = holy_power_consumer_t::composite_target_multiplier( t );
-    if ( td( t ) -> debuff.judgment -> up() && p() -> conduit.punish_the_guilty -> ok() )
-      ctm *= 1.0 + p() -> conduit.punish_the_guilty.percent();
+    
     return ctm;
   }
 
   double action_multiplier() const override
   {
     double am = holy_power_consumer_t::action_multiplier();
-    // Range increase on bulwark of righteous fury not implemented.
-    am *= 1.0 + p() -> buffs.bulwark_of_righteous_fury -> stack_value();
     return am;
   }
 };
@@ -652,17 +589,6 @@ void paladin_t::target_mitigation( school_e school,
   if ( buffs.divine_protection -> up() )
   {
     s -> result_amount *= 1.0 + buffs.divine_protection -> data().effectN( 1 ).percent();
-  }
-
-  if ( buffs.ardent_defender -> up() )
-  {
-    s -> result_amount *= 1.0 + buffs.ardent_defender -> data().effectN( 1 ).percent()
-      + legendary.the_ardent_protectors_sanctum -> effectN( 1 ).percent();
-  }
-
-  if ( buffs.blessing_of_dusk -> up() )
-  {
-    s -> result_amount *= 1.0 + buffs.blessing_of_dusk -> value();
   }
 
   if ( buffs.devotion_aura -> up() )
@@ -752,11 +678,7 @@ void paladin_t::trigger_grand_crusader()
     return;
 
   double gc_proc_chance = passives.grand_crusader -> proc_chance();
-  if ( azerite.inspiring_vanguard.enabled() )
-  {
-    gc_proc_chance = azerite.inspiring_vanguard.spell() -> effectN( 2 ).percent();
-  }
-
+  
   // The bonus from First Avenger is added after Inspiring Vanguard
   bool success = rng().roll( gc_proc_chance );
   if ( ! success )
@@ -776,10 +698,6 @@ void paladin_t::trigger_grand_crusader()
     cooldowns.judgment -> adjust( -( cooldowns.judgment -> duration ), true ); //decrease remaining time by the duration of one charge, i.e., add one charge
   }
 
-  if ( azerite.inspiring_vanguard.enabled() )
-  {
-    buffs.inspiring_vanguard -> trigger();
-  }
 }
 
 void paladin_t::trigger_holy_shield( action_state_t* s )
@@ -819,12 +737,12 @@ bool paladin_t::standing_in_consecration() const
   return false;
 }
 
-// Initialization
-void paladin_t::create_prot_actions()
-{
-  active.divine_toll = new avengers_shield_dt_t( this );
-  active.necrolord_shield_of_the_righteous = new shield_of_the_righteous_t( this );
-}
+//Initialization
+//void paladin_t::create_prot_actions()
+//{
+//  active.divine_toll = new avengers_shield_dt_t( this );
+//  active.necrolord_shield_of_the_righteous = new shield_of_the_righteous_t( this );
+//}
 
 action_t* paladin_t::create_action_protection( util::string_view name, const std::string& options_str )
 {
@@ -852,11 +770,7 @@ void paladin_t::create_buffs_protection()
         -> set_cooldown( 0_ms ); // handled by the ability
   buffs.guardian_of_ancient_kings = make_buff( this, "guardian_of_ancient_kings", find_specialization_spell( "Guardian of Ancient Kings" ) )
         -> set_cooldown( 0_ms )
-        -> set_stack_change_callback( [ this ] ( buff_t*, int /*old*/, int curr )
-        {
-          if ( curr == 1 && conduit.royal_decree -> ok() )
-            this -> buffs.royal_decree -> trigger();
-        } );
+          ->set_stack_change_callback( [ this ]( buff_t*, int /*old*/, int curr ) {} );
 
 //HS and BH fake absorbs
   buffs.holy_shield_absorb = make_buff<absorb_buff_t>( this, "holy_shield", talents.holy_shield );
@@ -875,24 +789,12 @@ void paladin_t::create_buffs_protection()
   buffs.shield_of_the_righteous = new shield_of_the_righteous_buff_t( this );
   buffs.moment_of_glory = make_buff( this, "moment_of_glory", talents.moment_of_glory )
         -> set_default_value( talents.moment_of_glory -> effectN( 2 ).percent() );
-  buffs.bulwark_of_righteous_fury = make_buff( this, "bulwark_of_righteous_fury", find_spell( 337848) )
-        -> set_default_value( find_spell( 337848 ) -> effectN( 1 ).percent() );
-  buffs.shielding_words = make_buff<absorb_buff_t>( this, "shielding_words", conduit.shielding_words )
-        -> set_absorb_source( get_stats( "shielding_words" ) );
+  
   buffs.shining_light_stacks = make_buff( this, "shining_light_stacks", find_spell( 182104 ) );
   buffs.shining_light_free = make_buff( this, "shining_light_free", find_spell( 327510 ) );
 
   buffs.royal_decree = make_buff( this, "royal_decree", find_spell( 340147 ) );
-  buffs.reign_of_ancient_kings = make_buff( this, "reign_of_ancient_kings",
-    legendary.reign_of_endless_kings -> effectN( 2 ).trigger() -> effectN( 2 ).trigger() );
-
-  // Azerite traits
-  buffs.inner_light = make_buff( this, "inner_light", find_spell( 275481 ) )
-        -> set_default_value( azerite.inner_light.value( 1 ) );
-  buffs.inspiring_vanguard = make_buff<stat_buff_t>( this, "inspiring_vanguard", azerite.inspiring_vanguard.spell() -> effectN( 1 ).trigger() -> effectN( 1 ).trigger() )
-        -> add_stat( STAT_STRENGTH, azerite.inspiring_vanguard.value( 1 ) );
-  buffs.soaring_shield = make_buff<stat_buff_t>( this, "soaring_shield", azerite.soaring_shield.spell() -> effectN( 1 ).trigger() -> effectN( 1 ).trigger() )
-        -> add_stat( STAT_MASTERY_RATING, azerite.soaring_shield.value( 1 ) );
+  
 
   if ( specialization() == PALADIN_PROTECTION )
     player_t::buffs.memory_of_lucid_dreams -> set_stack_change_callback( [ this ]( buff_t*, int, int )
@@ -941,10 +843,6 @@ void paladin_t::init_spells_protection()
   passives.riposte             = find_specialization_spell( "Riposte" );
   passives.sanctuary           = find_specialization_spell( "Sanctuary" );
 
-  // Azerite traits
-  azerite.inspiring_vanguard = find_azerite_spell( "Inspiring Vanguard" );
-  azerite.inner_light        = find_azerite_spell( "Inner Light"        );
-  azerite.soaring_shield     = find_azerite_spell( "Soaring Shield"     );
 }
 
 void paladin_t::generate_action_prio_list_prot()
@@ -1009,7 +907,6 @@ void paladin_t::generate_action_prio_list_prot()
   std -> add_action( "lights_judgment" );
   std -> add_action( "arcane_torrent" );
   std -> add_action( this, "Consecration" );
-  std -> add_action( this, "Word of Glory", "if=buff.shining_light_free.up&!covenant.necrolord" );
 
 }
 }

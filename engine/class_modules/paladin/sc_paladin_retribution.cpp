@@ -19,9 +19,7 @@ namespace buffs {
 
     // increase duration if we have Light's Decree
     paladin_t* paladin = static_cast<paladin_t*>( p );
-    if ( paladin -> azerite.lights_decree.ok() )
-      base_buff_duration += paladin -> spells.lights_decree -> effectN( 2 ).time_value();
-
+    
     // let the ability handle the cooldown
     cooldown -> duration = 0_ms;
 
@@ -62,8 +60,6 @@ struct crusade_t : public paladin_spell_t
 
     if ( ! ( p -> talents.crusade -> ok() ) )
       background = true;
-
-    cooldown -> duration *= 1.0 + azerite::vision_of_perfection_cdr( p -> azerite_essence.vision_of_perfection );
   }
 
   void execute() override
@@ -77,8 +73,6 @@ struct crusade_t : public paladin_spell_t
 
     p() -> buffs.crusade -> trigger();
 
-    if ( p() -> azerite.avengers_might.ok() )
-      p() -> buffs.avengers_might -> trigger( 1, p() -> buffs.avengers_might -> default_value, -1.0, p() -> buffs.crusade -> buff_duration() );
   }
 };
 
@@ -195,17 +189,6 @@ struct execution_sentence_t : public holy_power_consumer_t<paladin_melee_attack_
 
 struct blade_of_justice_t : public paladin_melee_attack_t
 {
-  struct azerite_expurgation_t : public paladin_spell_t
-  {
-    azerite_expurgation_t( paladin_t* p ) :
-      paladin_spell_t( "expurgation", p, p -> find_spell( 273481 ) )
-    {
-      base_td = p -> azerite.expurgation.value();
-      hasted_ticks = false;
-      tick_may_crit = true;
-    }
-  };
-
   struct expurgation_t : public paladin_spell_t
   {
     expurgation_t( paladin_t* p ):
@@ -216,27 +199,13 @@ struct blade_of_justice_t : public paladin_melee_attack_t
     }
   };
 
-  azerite_expurgation_t* azerite_expurgation;
   expurgation_t* expurgation;
 
   blade_of_justice_t( paladin_t* p, const std::string& options_str ) :
     paladin_melee_attack_t( "blade_of_justice", p, p -> find_class_spell( "Blade of Justice" ) ),
-    azerite_expurgation( nullptr ),
     expurgation( nullptr )
   {
     parse_options( options_str );
-
-    if ( p -> azerite.expurgation.ok() )
-    {
-      azerite_expurgation = new azerite_expurgation_t( p );
-      add_child( azerite_expurgation );
-    }
-
-    if ( p -> conduit.expurgation -> ok() )
-    {
-      expurgation = new expurgation_t( p );
-      add_child( expurgation );
-    }
 
     const spell_data_t* blade_of_justice_2 = p -> find_specialization_spell( 327981 );
     if ( blade_of_justice_2 )
@@ -266,27 +235,9 @@ struct blade_of_justice_t : public paladin_melee_attack_t
 
     if ( state -> result == RESULT_CRIT )
     {
-      if ( p() -> azerite.expurgation.ok() )
-      {
-        azerite_expurgation -> set_target( state -> target );
-        azerite_expurgation -> execute();
-      }
-
-      if ( p() -> conduit.expurgation -> ok() )
-      {
-        expurgation -> base_td = state -> result_amount * p() -> conduit.expurgation.percent();
-        expurgation -> set_target( state -> target );
-        expurgation -> execute();
-      }
+      
     }
 
-    if ( p() -> buffs.virtuous_command -> up() && p() -> active.virtuous_command )
-    {
-      action_t* vc = p() -> active.virtuous_command;
-      vc -> base_dd_min = vc -> base_dd_max = state -> result_amount * p() -> conduit.virtuous_command.percent();
-      vc -> set_target( state -> target );
-      vc -> schedule_execute();
-    }
   }
 };
 
@@ -302,8 +253,6 @@ struct divine_storm_t: public holy_power_consumer_t<paladin_melee_attack_t>
 
     aoe = as<int>( data().effectN( 2 ).base_value() );
 
-    if ( p -> legendary.tempest_of_the_lightbringer -> ok() )
-      base_multiplier *= 1.0 + p -> legendary.tempest_of_the_lightbringer -> effectN( 2 ).percent();
   }
 
   divine_storm_t( paladin_t* p, bool is_free, float mul ) :
@@ -315,18 +264,11 @@ struct divine_storm_t: public holy_power_consumer_t<paladin_melee_attack_t>
     background = is_free;
     base_multiplier *= mul;
 
-    if ( p -> legendary.tempest_of_the_lightbringer -> ok() )
-      base_multiplier *= 1.0 + p -> legendary.tempest_of_the_lightbringer -> effectN( 2 ).percent();
   }
 
   double bonus_da( const action_state_t* s ) const override
   {
     double b = holy_power_consumer_t::bonus_da( s );
-
-    if ( p() -> buffs.empyrean_power_azerite -> up() )
-    {
-      b += p() -> azerite.empyrean_power.value();
-    }
 
     return b;
   }
@@ -373,7 +315,6 @@ struct templars_verdict_t : public holy_power_consumer_t<paladin_melee_attack_t>
     echoed_templars_verdict_t( paladin_t *p ) :
       paladin_melee_attack_t( "echoed_verdict", p, p -> find_spell( 339538 ) )
     {
-      base_multiplier *= p -> conduit.templars_vindication -> effectN( 2 ).percent();
       background = true;
       may_crit = false;
 
@@ -409,22 +350,6 @@ struct templars_verdict_t : public holy_power_consumer_t<paladin_melee_attack_t>
     {
       paladin_melee_attack_t::impact( s );
 
-      if ( p() -> buffs.virtuous_command -> up() && p() -> active.virtuous_command )
-      {
-        action_t* vc = p() -> active.virtuous_command;
-        vc -> base_dd_min = vc -> base_dd_max = s -> result_amount * p() -> conduit.virtuous_command.percent();
-        vc -> set_target( s -> target );
-        vc -> schedule_execute();
-      }
-
-      if ( p() -> conduit.templars_vindication -> ok() )
-      {
-        if ( rng().roll( p() -> conduit.templars_vindication.percent() ) )
-        {
-          // TODO(mserrano): figure out if 600ms is still correct; there does appear to be some delay
-          make_event<echoed_spell_event_t>( *sim, p(), execute_state -> target, echo, timespan_t::from_millis( 600 ), s -> result_amount );
-        }
-      }
     }
 
     double action_multiplier() const override
@@ -439,36 +364,7 @@ struct templars_verdict_t : public holy_power_consumer_t<paladin_melee_attack_t>
   echoed_templars_verdict_t* echo;
   bool is_fv;
 
-  templars_verdict_t( paladin_t* p, const std::string& options_str ) :
-    holy_power_consumer_t(
-      p -> legendary.final_verdict -> ok() ? "final_verdict" : "templars_verdict",
-      p,
-      p -> legendary.final_verdict -> ok() ? ( p -> find_spell( 336872 ) ) : ( p -> find_specialization_spell( "Templar's Verdict" ) ) ),
-    echo( nullptr ),
-    is_fv( p -> legendary.final_verdict -> ok() )
-  {
-    parse_options( options_str );
-
-    // wtf is happening in spell data?
-    aoe = 0;
-
-    if ( p -> conduit.templars_vindication -> ok() )
-    {
-      echo = new echoed_templars_verdict_t( p );
-    }
-
-    if ( ! is_fv ) {
-      callbacks = false;
-      may_block = false;
-
-      impact_action = new templars_verdict_damage_t( p, echo );
-      impact_action -> stats = stats;
-
-      // Okay, when did this get reset to 1?
-      weapon_multiplier = 0;
-    }
-  }
-
+ 
   void record_data( action_state_t* state ) override {
     if ( is_fv )
       holy_power_consumer_t::record_data( state );
@@ -494,46 +390,12 @@ struct templars_verdict_t : public holy_power_consumer_t<paladin_melee_attack_t>
       p() -> buffs.righteous_verdict -> trigger();
     }
 
-    if ( p() -> buffs.vanquishers_hammer -> up() )
-    {
-      p() -> active.necrolord_divine_storm -> schedule_execute();
-      p() -> buffs.vanquishers_hammer -> expire();
-    }
-
-    // TODO(mserrano): figure out the actionbar override thing instead of this hack.
-    if ( p() -> legendary.final_verdict -> ok() )
-    {
-      if ( rng().roll( p() -> legendary.final_verdict -> effectN( 2 ).percent() ) )
-      {
-        p() -> cooldowns.hammer_of_wrath -> reset( true );
-        p() -> buffs.final_verdict -> trigger();
-      }
-    }
   }
 
   void impact( action_state_t* s ) override
   {
     holy_power_consumer_t::impact( s );
 
-    if ( is_fv )
-    {
-      if ( p() -> buffs.virtuous_command -> up() && p() -> active.virtuous_command )
-      {
-        action_t* vc = p() -> active.virtuous_command;
-        vc -> base_dd_min = vc -> base_dd_max = s -> result_amount * p() -> conduit.virtuous_command.percent();
-        vc -> set_target( s -> target );
-        vc -> schedule_execute();
-      }
-
-      if ( p() -> conduit.templars_vindication -> ok() )
-      {
-        if ( rng().roll( p() -> conduit.templars_vindication.percent() ) )
-        {
-          // TODO(mserrano): figure out if 600ms is still correct; there does appear to be some delay
-          make_event<echoed_spell_event_t>( *sim, p(), execute_state -> target, echo, timespan_t::from_millis( 600 ), s -> result_amount );
-        }
-      }
-    }
   }
 
   double action_multiplier() const override
@@ -735,24 +597,14 @@ struct wake_of_ashes_t : public paladin_spell_t
     may_crit = true;
     aoe = -1;
 
-    if ( p -> conduit.truths_wake -> ok() )
-    {
-      truths_wake = new truths_wake_t( p );
-      add_child( truths_wake );
-    }
+    
   }
 
   void impact( action_state_t* s) override
   {
     paladin_spell_t::impact( s );
 
-    if ( result_is_hit( s -> result ) && p() -> conduit.truths_wake -> ok() )
-    {
-      double truths_wake_mul = p() -> conduit.truths_wake.percent() / p() -> conduit.truths_wake -> effectN( 2 ).base_value();
-      truths_wake -> base_td = s -> result_raw * truths_wake_mul;
-      truths_wake -> set_target( s -> target );
-      truths_wake -> execute();
-    }
+    
   }
 };
 
@@ -782,12 +634,7 @@ void paladin_t::create_ret_actions()
   }
 
   active.shield_of_vengeance_damage = new shield_of_vengeance_proc_t( this );
-  active.necrolord_divine_storm = new divine_storm_t( this, true, 1.0 );
 
-  if ( specialization() == PALADIN_RETRIBUTION )
-  {
-    active.divine_toll = new judgment_ret_t( this );
-  }
 }
 
 action_t* paladin_t::create_action_retribution( util::string_view name, const std::string& options_str )
@@ -824,17 +671,7 @@ void paladin_t::create_buffs_retribution()
              -> add_invalidate( CACHE_ATTACK_SPEED )
              -> set_cooldown( timespan_t::from_millis( 500 ) );
 
-  // Azerite
-  buffs.empyrean_power_azerite = make_buff( this, "empyrean_power_azerite", find_spell( 286393 ) )
-                       -> set_default_value( azerite.empyrean_power.value() );
-  buffs.empyrean_power = make_buff( this, "empyrean_power", find_spell( 326733 ) );
-  buffs.relentless_inquisitor_azerite = make_buff<stat_buff_t>(this, "relentless_inquisitor_azerite", find_spell( 279204 ) )
-                              -> add_stat( STAT_HASTE_RATING, azerite.relentless_inquisitor.value() );
-
-  // legendaries
-  buffs.vanguards_momentum = make_buff( this, "vanguards_momentum", find_spell( 345046 ) )
-                             -> add_invalidate( CACHE_PLAYER_DAMAGE_MULTIPLIER )
-                             -> set_default_value( find_spell( 345046 ) -> effectN( 1 ).percent() );
+  
 }
 
 void paladin_t::init_rng_retribution()
@@ -884,19 +721,12 @@ void paladin_t::init_spells_retribution()
   spells.reckoning = find_spell( 343724 );
   spells.sanctified_wrath_damage = find_spell( 326731 );
 
-  // Azerite traits
-  azerite.expurgation           = find_azerite_spell( "Expurgation" );
-  azerite.relentless_inquisitor = find_azerite_spell( "Relentless Inquisitor" );
-  azerite.empyrean_power        = find_azerite_spell( "Empyrean Power" );
-  azerite.lights_decree         = find_azerite_spell( "Light's Decree" );
+ 
 }
 
 void empyrean_power( special_effect_t& effect )
 {
-  azerite_power_t power = effect.player -> find_azerite_spell( effect.driver() -> name_cstr() );
-  if ( !power.enabled() )
-    return;
-
+  
   const spell_data_t* driver = effect.player -> find_spell( 286392 );
 
   buff_t* buff = buff_t::find( effect.player, "empyrean_power" );
