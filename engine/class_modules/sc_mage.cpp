@@ -984,7 +984,6 @@ struct touch_of_the_magi_t final : public buff_t
     // TODO: Higher ranks of this spell use floating point values in the spell data.
     // Verify whether we need a floor operation here to trim those values down to integers,
     // which sometimes happens when Blizzard uses floating point numbers like this.
-    damage_fraction += p->conduits.magis_brand.percent();
     explosion->base_dd_min = explosion->base_dd_max = damage_fraction * current_value;
     explosion->execute();
   }
@@ -1647,16 +1646,6 @@ public:
     if ( s->result_total <= 0.0 )
       return;
 
-    if ( triggers.icy_propulsion && s->result == RESULT_CRIT && p()->buffs.icy_veins->check() )
-      p()->cooldowns.icy_veins->adjust( -0.1 * p()->conduits.icy_propulsion.time_value( conduit_data_t::S ) );
-
-    if ( p()->runeforge.fevered_incantation->ok() && s->result_type == result_amount_type::DMG_DIRECT )
-    {
-      if ( s->result == RESULT_CRIT )
-        make_event( *sim, [ this ] { p()->buffs.fevered_incantation->trigger(); } );
-      else
-        make_event( *sim, [ this ] { p()->buffs.fevered_incantation->expire(); } );
-    }
   }
 
   void assess_damage( result_amount_type rt, action_state_t* s ) override
@@ -2421,9 +2410,6 @@ struct arcane_barrage_t final : public arcane_mage_spell_t
     if ( result_is_hit( s->result ) )
     {
       p()->buffs.chrono_shift->trigger();
-      // Multiply by 0.1 because for this data a value of 100 means 10%.
-      if ( rng().roll( 0.1 * p()->conduits.artifice_of_the_archmage.percent() ) )
-        p()->trigger_arcane_charge( artifice_of_the_archmage_charges );
     }
   }
 
@@ -2432,9 +2418,6 @@ struct arcane_barrage_t final : public arcane_mage_spell_t
     double m = arcane_mage_spell_t::composite_da_multiplier( s );
 
     m *= 1.0 + s->n_targets * p()->talents.resonance->effectN( 1 ).percent();
-
-    if ( s->target->health_percentage() < p()->runeforge.arcane_bombardment->effectN( 1 ).base_value() )
-      m *= 1.0 + p()->runeforge.arcane_bombardment->effectN( 2 ).percent();
 
     return m;
   }
@@ -2494,15 +2477,7 @@ struct arcane_blast_t final : public arcane_mage_spell_t
   {
     arcane_mage_spell_t::impact( s );
 
-    // With Deathborne, multiple stacks of Nether Precision are removed
-    // by a single Arcane blast, but all of them will benefit from the
-    // bonus damage.
-    // Delay the decrement call because if you cast Arcane Missiles to consume
-    // Clearcasting immediately after Arcane Blast, a stack of Nether Precision
-    // will be consumed by Arcane Blast will not benefit from the damage bonus.
-    // Check if this is still the case closer to Shadowlands release.
-    if ( result_is_hit( s-> result ) && p()->conduits.nether_precision.ok() )
-      make_event( *sim, 15_ms, [ this ] { p()->buffs.nether_precision->decrement(); } );
+   
   }
 
   double action_multiplier() const override
@@ -2634,9 +2609,6 @@ struct arcane_missiles_tick_t final : public arcane_mage_spell_t
   {
     arcane_mage_spell_t::execute();
 
-    if ( p()->buffs.clearcasting_channel->check() )
-      // Multiply by 100 because for this data a value of 1 represents 0.1 seconds.
-      p()->cooldowns.arcane_power->adjust( -100 * p()->conduits.arcane_prodigy.time_value(), false );
   }
 
   void impact( action_state_t* s ) override
@@ -2881,7 +2853,6 @@ struct blink_t final : public mage_spell_t
     ignore_false_positive = true;
     base_teleport_distance = data().effectN( 1 ).radius_max();
     movement_directionality = movement_direction_type::OMNI;
-    cooldown->duration += p->conduits.flow_of_time.time_value();
 
     if ( p->talents.shimmer->ok() )
       background = true;
@@ -2899,7 +2870,6 @@ struct blizzard_shard_t final : public frost_mage_spell_t
     background = ground_aoe = triggers.bone_chilling = true;
     triggers.icy_propulsion = false;
     base_multiplier *= 1.0 + p->spec.blizzard_3->effectN( 1 ).percent();
-    base_multiplier *= 1.0 + p->conduits.shivering_core.percent();
   }
 
   result_amount_type amount_type( const action_state_t*, bool ) const override
@@ -3167,9 +3137,6 @@ struct counterspell_t final : public mage_spell_t
     mage_spell_t::impact( s );
 
     bool success = p()->trigger_crowd_control( s, MECHANIC_INTERRUPT );
-    if ( success && p()->conduits.grounding_surge.ok() )
-      // At this point, Counterspell's cooldown hasn't started yet. Do the CDR in a separate event.
-      make_event( *sim, [ this ] { cooldown->adjust( -100 * p()->conduits.grounding_surge.time_value() ); } );
   }
 
   bool target_ready( player_t* candidate_target ) override
@@ -3231,9 +3198,6 @@ struct evocation_t final : public arcane_mage_spell_t
     harmful = false;
     target = player;
     cooldown->duration *= 1.0 + p->spec.evocation_2->effectN( 1 ).percent();
-
-    if ( p->runeforge.siphon_storm.ok() )
-      siphon_storm_charges = as<int>( p->find_spell( 332929 )->effectN( 1 ).base_value() );
   }
 
   void trigger_dot( action_state_t* s ) override
@@ -3429,7 +3393,6 @@ struct flamestrike_t final : public hot_streak_spell_t
     aoe = -1;
     base_execute_time += p->spec.flamestrike_2->effectN( 1 ).time_value();
     base_multiplier *= 1.0 + p->spec.flamestrike_3->effectN( 1 ).percent();
-    base_multiplier *= 1.0 + p->conduits.master_flame.percent();
 
     if ( p->talents.flame_patch->ok() )
     {
@@ -3671,8 +3634,6 @@ struct frost_nova_t final : public mage_spell_t
     mage_spell_t::impact( s );
 
     p()->trigger_crowd_control( s, MECHANIC_ROOT );
-    if ( result_is_hit( s->result ) && p()->runeforge.grisly_icicle.ok() )
-      get_td( s->target )->debuffs.grisly_icicle->trigger();
   }
 };
 
@@ -3691,7 +3652,6 @@ struct frozen_orb_bolt_t final : public frost_mage_spell_t
     frost_mage_spell_t( n, p, p->find_spell( 84721 ) )
   {
     aoe = as<int>( data().effectN( 2 ).base_value() );
-    base_multiplier *= 1.0 + p->conduits.unrelenting_cold.percent();
     background = triggers.bone_chilling = true;
   }
 
@@ -3950,11 +3910,6 @@ struct ice_lance_t final : public frost_mage_spell_t
       base_aoe_multiplier *= p->talents.splitting_ice->effectN( 2 ).percent() - 0.15;
     }
 
-    if ( p->runeforge.glacial_fragments.ok() )
-    {
-      glacial_fragments = get_action<glacial_fragments_t>( "glacial_fragments", p );
-      add_child( glacial_fragments );
-    }
   }
 
   void init_finished() override
@@ -4053,19 +4008,6 @@ struct ice_lance_t final : public frost_mage_spell_t
     if ( !primary )
       record_shatter_source( s, cleave_source );
 
-    // TODO: Determine how it is verified that Blizzard is actively "hitting" the target to increase this chance.
-    if ( glacial_fragments )
-    {
-      double chance = p()->ground_aoe_expiration[ AOE_BLIZZARD ] > sim->current_time()
-        ? p()->runeforge.glacial_fragments->effectN( 2 ).percent()
-        : p()->runeforge.glacial_fragments->effectN( 1 ).percent();
-
-      if ( rng().roll( chance ) )
-      {
-        glacial_fragments->set_target( s->target );
-        glacial_fragments->execute();
-      }
-    }
   }
 
   double action_multiplier() const override
@@ -4082,7 +4024,6 @@ struct ice_lance_t final : public frost_mage_spell_t
     double m = frost_mage_spell_t::frozen_multiplier( s );
 
     m *= 3.0;
-    m *= 1.0 + p()->conduits.ice_bite.percent();
 
     return m;
   }
@@ -4587,7 +4528,6 @@ struct pyroblast_t final : public hot_streak_spell_t
     parse_options( options_str );
     triggers.hot_streak = triggers.kindling = TT_MAIN_TARGET;
     triggers.ignite = triggers.from_the_ashes = triggers.radiant_spark = true;
-    base_multiplier *= 1.0 + p->conduits.controlled_destruction.percent();
 
     if ( p->spec.pyroblast_2->ok() )
     {
@@ -4613,7 +4553,6 @@ struct pyroblast_t final : public hot_streak_spell_t
     if ( time_to_execute > 0_ms && p()->buffs.sun_kings_blessing_ready->check() )
     {
       p()->buffs.sun_kings_blessing_ready->expire();
-      p()->buffs.combustion->extend_duration_or_trigger( 1000 * p()->runeforge.sun_kings_blessing->effectN( 2 ).time_value() );
     }
 
     hot_streak_spell_t::execute();
@@ -4774,7 +4713,6 @@ struct shimmer_t final : public mage_spell_t
     ignore_false_positive = usable_while_casting = true;
     base_teleport_distance = data().effectN( 1 ).radius_max();
     movement_directionality = movement_direction_type::OMNI;
-    cooldown->duration += p->conduits.flow_of_time.time_value();
   }
 };
 
@@ -4846,9 +4784,6 @@ struct time_warp_t final : public mage_spell_t
   {
     parse_options( options_str );
     harmful = false;
-
-    if ( sim->overrides.bloodlust && !p->runeforge.temporal_warp.ok() )
-      background = true;
   }
 
   void execute() override
@@ -4870,9 +4805,6 @@ struct time_warp_t final : public mage_spell_t
 
   bool ready() override
   {
-    if ( player->buffs.exhaustion->check() && !p()->runeforge.temporal_warp.ok() )
-      return false;
-
     return mage_spell_t::ready();
   }
 };
@@ -5076,8 +5008,7 @@ struct shifting_power_t final : public mage_spell_t
 
   shifting_power_t( util::string_view n, mage_t* p, util::string_view options_str ) :
     mage_spell_t( n, p, p->find_covenant_spell( "Shifting Power" ) ),
-    shifting_power_cooldowns(),
-    reduction( data().effectN( 2 ).time_value() + p->conduits.discipline_of_the_grove.time_value() )
+    shifting_power_cooldowns()
   {
     parse_options( options_str );
     channeled = affected_by.ice_floes = true;
@@ -5442,20 +5373,7 @@ mage_td_t::mage_td_t( player_t* target, mage_t* mage ) :
   debuffs.winters_chill     = make_buff( *this, "winters_chill", mage->find_spell( 228358 ) )
                                 ->set_chance( mage->spec.brain_freeze_2->ok() );
 
-  // Runeforge Legendaries
-  debuffs.grisly_icicle = make_buff( *this, "grisly_icicle", mage->find_spell( 348007 ) )
-                            ->set_default_value_from_effect( 1 )
-                            ->set_chance( mage->runeforge.grisly_icicle.ok() );
-
-  // Covenant Abilities
-  dots.radiant_spark = target->get_dot( "radiant_spark", mage );
-
-  debuffs.mirrors_of_torment          = make_buff<buffs::mirrors_of_torment_t>( this );
-  debuffs.radiant_spark_vulnerability = make_buff( *this, "radiant_spark_vulnerability", mage->find_spell( 307454 ) )
-                                          ->set_activated( false )
-                                          ->set_default_value_from_effect( 1 )
-                                          ->modify_default_value( mage->conduits.ire_of_the_ascended.percent() )
-                                          ->set_refresh_behavior( buff_refresh_behavior::DISABLED );
+  
 }
 
 mage_t::mage_t( sim_t* sim, util::string_view name, race_e r ) :
@@ -5478,8 +5396,6 @@ mage_t::mage_t( sim_t* sim, util::string_view name, race_e r ) :
   spec(),
   state(),
   talents(),
-  runeforge(),
-  conduits(),
   uptime()
 {
   // Cooldowns
@@ -5515,27 +5431,7 @@ bool mage_t::trigger_crowd_control( const action_state_t* s, spell_mechanic type
   return false;
 }
 
-void mage_t::trigger_disciplinary_command( school_e school )
-{
-  if ( runeforge.disciplinary_command.ok() && !buffs.disciplinary_command->check() )
-  {
-    // Only one school is triggered for Disciplinary Command if multiple are present.
-    // Schools are checked in order from the largest school mask to smallest.
-    if ( dbc::is_school( school, SCHOOL_ARCANE ) )
-      buffs.disciplinary_command_arcane->trigger();
-    else if ( dbc::is_school( school, SCHOOL_FROST ) )
-      buffs.disciplinary_command_frost->trigger();
-    else if ( dbc::is_school( school, SCHOOL_FIRE ) )
-      buffs.disciplinary_command_fire->trigger();
-    if ( buffs.disciplinary_command_arcane->check() && buffs.disciplinary_command_frost->check() && buffs.disciplinary_command_fire->check() )
-    {
-      buffs.disciplinary_command->trigger();
-      buffs.disciplinary_command_arcane->expire();
-      buffs.disciplinary_command_frost->expire();
-      buffs.disciplinary_command_fire->expire();
-    }
-  }
-}
+
 
 action_t* mage_t::create_action( util::string_view name, const std::string& options_str )
 {
@@ -5605,12 +5501,6 @@ action_t* mage_t::create_action( util::string_view name, const std::string& opti
   if ( name == "rune_of_power"          ) return new          rune_of_power_t( name, this, options_str );
   if ( name == "shimmer"                ) return new                shimmer_t( name, this, options_str );
 
-  // Covenant Abilities
-  if ( name == "deathborne"             ) return new             deathborne_t( name, this, options_str );
-  if ( name == "mirrors_of_torment"     ) return new     mirrors_of_torment_t( name, this, options_str );
-  if ( name == "radiant_spark"          ) return new          radiant_spark_t( name, this, options_str );
-  if ( name == "shifting_power"         ) return new         shifting_power_t( name, this, options_str );
-
   // Special
   if ( name == "blink_any" || name == "any_blink" )
     return create_action( talents.shimmer->ok() ? "shimmer" : "blink", options_str );
@@ -5650,11 +5540,6 @@ void mage_t::create_actions()
   if ( spec.touch_of_the_magi->ok() )
     action.touch_of_the_magi_explosion = get_action<touch_of_the_magi_explosion_t>( "touch_of_the_magi_explosion", this );
 
-  if ( runeforge.molten_skyfall.ok() )
-    action.legendary_meteor = get_action<meteor_t>( "legendary_meteor", this, "", true );
-
-  if ( runeforge.cold_front.ok() )
-    action.legendary_frozen_orb = get_action<frozen_orb_t>( "legendary_frozen_orb", this, "", true );
 
   if ( find_covenant_spell( "Mirrors of Torment" )->ok() )
   {
@@ -5945,48 +5830,7 @@ void mage_t::init_spells()
   spec.icicles               = find_mastery_spell( MAGE_FROST );
   spec.icicles_2             = find_specialization_spell( "Mastery: Icicles", "Rank 2" );
 
-  // Runeforge Legendaries
-  runeforge.arcane_bombardment   = find_runeforge_legendary( "Arcane Bombardment"   );
-  runeforge.arcane_harmony       = find_runeforge_legendary( "Arcane Infinity"      );
-  runeforge.siphon_storm         = find_runeforge_legendary( "Siphon Storm"         );
-  runeforge.temporal_warp        = find_runeforge_legendary( "Temporal Warp"        );
-
-  runeforge.fevered_incantation  = find_runeforge_legendary( "Fevered Incantation"  );
-  runeforge.firestorm            = find_runeforge_legendary( "Firestorm"            );
-  runeforge.molten_skyfall       = find_runeforge_legendary( "Molten Skyfall"       );
-  runeforge.sun_kings_blessing   = find_runeforge_legendary( "Sun King's Blessing"  );
-
-  runeforge.cold_front           = find_runeforge_legendary( "Cold Front"           );
-  runeforge.freezing_winds       = find_runeforge_legendary( "Freezing Winds"       );
-  runeforge.glacial_fragments    = find_runeforge_legendary( "Glacial Fragments"    );
-  runeforge.slick_ice            = find_runeforge_legendary( "Slick Ice"            );
-
-  runeforge.disciplinary_command = find_runeforge_legendary( "Disciplinary Command" );
-  runeforge.expanded_potential   = find_runeforge_legendary( "Expanded Potential"   );
-  runeforge.grisly_icicle        = find_runeforge_legendary( "Grisly Icicle"        );
-
-  // Soulbind Conduits
-  conduits.arcane_prodigy           = find_conduit_spell( "Arcane Prodigy"           );
-  conduits.artifice_of_the_archmage = find_conduit_spell( "Artifice of the Archmage" );
-  conduits.magis_brand              = find_conduit_spell( "Magi's Brand"             );
-  conduits.nether_precision         = find_conduit_spell( "Nether Precision"         );
-
-  conduits.controlled_destruction   = find_conduit_spell( "Controlled Destruction"   );
-  conduits.flame_accretion          = find_conduit_spell( "Flame Accretion"          );
-  conduits.infernal_cascade         = find_conduit_spell( "Infernal Cascade"         );
-  conduits.master_flame             = find_conduit_spell( "Master Flame"             );
-
-  conduits.ice_bite                 = find_conduit_spell( "Ice Bite"                 );
-  conduits.icy_propulsion           = find_conduit_spell( "Icy Propulsion"           );
-  conduits.shivering_core           = find_conduit_spell( "Shivering Core"           );
-  conduits.unrelenting_cold         = find_conduit_spell( "Unrelenting Cold"         );
-
-  conduits.discipline_of_the_grove  = find_conduit_spell( "Discipline of the Grove"  );
-  conduits.flow_of_time             = find_conduit_spell( "Flow of Time"             );
-  conduits.gift_of_the_lich         = find_conduit_spell( "Gift of the Lich"         );
-  conduits.grounding_surge          = find_conduit_spell( "Grounding Surge"          );
-  conduits.ire_of_the_ascended      = find_conduit_spell( "Ire of the Ascended"      );
-  conduits.siphoned_malice          = find_conduit_spell( "Siphoned Malice"          );
+  
 }
 
 void mage_t::init_base_stats()
@@ -6122,84 +5966,7 @@ void mage_t::create_buffs()
                            ->set_pct_buff_type( STAT_PCT_BUFF_INTELLECT )
                            ->add_invalidate( CACHE_SPELL_CRIT_CHANCE );
 
-  // Runeforge Legendaries
-  buffs.arcane_harmony = make_buff( this, "arcane_harmony", find_spell( 332777 ) )
-                           ->set_default_value_from_effect( 1 )
-                           ->set_chance( runeforge.arcane_harmony.ok() );
-  buffs.siphon_storm   = make_buff( this, "siphon_storm", find_spell( 332934 ) )
-                           ->set_default_value_from_effect( 1 )
-                           ->set_pct_buff_type( STAT_PCT_BUFF_INTELLECT )
-                           ->set_chance( runeforge.siphon_storm.ok() );
-  buffs.temporal_warp  = make_buff( this, "temporal_warp", find_spell( 327355 ) )
-                           ->set_default_value_from_effect( 1 )
-                           ->set_pct_buff_type( STAT_PCT_BUFF_HASTE )
-                           ->set_chance( runeforge.temporal_warp.ok() );
-
-  buffs.fevered_incantation      = make_buff( this, "fevered_incantation", find_spell( 333049 ) )
-                                     ->set_default_value_from_effect( 1 )
-                                     ->set_chance( runeforge.fevered_incantation.ok() );
-  buffs.firestorm                = make_buff( this, "firestorm", find_spell( 333100 ) )
-                                     ->set_default_value_from_effect( 2 )
-                                     ->set_trigger_spell( runeforge.firestorm );
-  buffs.molten_skyfall           = make_buff( this, "molten_skyfall", find_spell( 333170 ) )
-                                     ->set_chance( runeforge.molten_skyfall.ok() );
-  buffs.molten_skyfall_ready     = make_buff( this, "molten_skyfall_ready", find_spell( 333182 ) );
-  buffs.sun_kings_blessing       = make_buff( this, "sun_kings_blessing", find_spell( 333314 ) )
-                                     ->set_chance( runeforge.sun_kings_blessing.ok() );
-  buffs.sun_kings_blessing_ready = make_buff( this, "sun_kings_blessing_ready", find_spell( 333315 ) );
-
-  buffs.cold_front       = make_buff( this, "cold_front", find_spell( 327327 ) )
-                             ->set_chance( runeforge.cold_front.ok() );
-  buffs.cold_front_ready = make_buff( this, "cold_front_ready", find_spell( 327330 ) );
-  proc_t* fw_fof = get_proc( "Fingers of Frost from Freezing Winds" );
-  buffs.freezing_winds   = make_buff( this, "freezing_winds", find_spell( 327478 ) )
-                             ->set_tick_callback( [ this, fw_fof ] ( buff_t*, int, timespan_t )
-                               { trigger_fof( 1.0, fw_fof ); } )
-                             ->set_chance( runeforge.freezing_winds.ok() );
-  buffs.slick_ice        = make_buff( this, "slick_ice", find_spell( 327509 ) )
-                             ->set_default_value_from_effect( 1 )
-                             ->set_chance( runeforge.slick_ice.ok() );
-
-  buffs.disciplinary_command        = make_buff( this, "disciplinary_command", find_spell( 327371 ) )
-                                        ->set_default_value_from_effect( 1 );
-  buffs.disciplinary_command_arcane = make_buff( this, "disciplinary_command_arcane", find_spell( 327369  ) )
-                                        ->set_quiet( true )
-                                        ->set_chance( runeforge.disciplinary_command.ok() );
-  buffs.disciplinary_command_frost  = make_buff( this, "disciplinary_command_frost", find_spell( 327366 ) )
-                                        ->set_quiet( true )
-                                        ->set_chance( runeforge.disciplinary_command.ok() );
-  buffs.disciplinary_command_fire   = make_buff( this, "disciplinary_command_fire", find_spell( 327368 ) )
-                                        ->set_quiet( true )
-                                        ->set_chance( runeforge.disciplinary_command.ok() );
-  buffs.expanded_potential          = make_buff( this, "expanded_potential", find_spell( 327495 ) )
-                                        ->set_trigger_spell( runeforge.expanded_potential );
-
-  // Covenant Abilities
-  buffs.deathborne = make_buff( this, "deathborne", find_spell( 324220 ) )
-                       ->set_default_value_from_effect( 2 )
-                       ->modify_duration( conduits.gift_of_the_lich.time_value() );
-
-
-  // Soulbind Conduits
-  buffs.nether_precision = make_buff( this, "nether_precision", find_spell( 336889 ) )
-                             ->set_default_value( conduits.nether_precision.percent() )
-                             ->set_chance( conduits.nether_precision.ok() );
-
-  buffs.flame_accretion  = make_buff( this, "flame_accretion", find_spell( 157644 ) )
-                             ->set_default_value( conduits.flame_accretion.value() )
-                             ->set_chance( conduits.flame_accretion.ok() )
-                             ->set_pct_buff_type( STAT_PCT_BUFF_MASTERY );
-  buffs.infernal_cascade = make_buff( this, "infernal_cascade", find_spell( 336832 ) )
-                             ->set_default_value( conduits.infernal_cascade.percent() )
-                             ->set_schools_from_effect( 1 )
-                             ->set_chance( conduits.infernal_cascade.ok() )
-                             ->add_invalidate( CACHE_PLAYER_DAMAGE_MULTIPLIER )
-                             ->set_stack_change_callback( [ this ] ( buff_t*, int, int cur )
-                               { if ( cur == 0 && buffs.combustion->check() ) procs.infernal_cascade_expires->occur(); } );
-
-  buffs.siphoned_malice = make_buff( this, "siphoned_malice", find_spell( 337090 ) )
-                             ->set_default_value( conduits.siphoned_malice.percent() )
-                             ->set_chance( conduits.siphoned_malice.ok() );
+ 
 }
 
 void mage_t::init_gains()
