@@ -1,0 +1,123 @@
+mage="PR_Mage_Frost"
+source=default
+spec=frost
+level=60
+race=mechagnome
+role=spell
+position=ranged_back
+talents=2032021
+covenant=venthyr
+soulbind=nadjia_the_mistblade,thrill_seeker/icy_propulsion:4
+
+# Default consumables
+potion=spectral_intellect
+flask=spectral_flask_of_power
+food=feast_of_gluttonous_hedonism
+augmentation=veiled
+temporary_enchant=main_hand:shadowcore_oil
+
+# This default action priority list is automatically created based on your character.
+# It is a attempt to provide you with a action list that is both simple and practicable,
+# while resulting in a meaningful and good simulation. It may not result in the absolutely highest possible dps.
+# Feel free to edit, adapt and improve it to your own needs.
+# SimulationCraft is always looking for updates and improvements to the default action lists.
+
+# Executed before combat begins. Accepts non-harmful actions only.
+actions.precombat=flask
+actions.precombat+=/food
+actions.precombat+=/augmentation
+actions.precombat+=/arcane_intellect
+actions.precombat+=/summon_water_elemental
+actions.precombat+=/snapshot_stats
+actions.precombat+=/blizzard,if=active_enemies>=2
+actions.precombat+=/frostbolt,if=active_enemies=1
+
+# Executed every time the actor is available.
+actions=counterspell,if=!runeforge.disciplinary_command|cooldown.buff_disciplinary_command.ready&buff.disciplinary_command_arcane.down
+actions+=/call_action_list,name=cds
+actions+=/call_action_list,name=aoe,if=active_enemies>=3
+actions+=/call_action_list,name=st,if=active_enemies<3
+actions+=/call_action_list,name=movement
+
+actions.aoe=frozen_orb
+actions.aoe+=/blizzard
+actions.aoe+=/flurry,if=(remaining_winters_chill=0|debuff.winters_chill.down)&(prev_gcd.1.ebonbolt|buff.brain_freeze.react&buff.fingers_of_frost.react=0)
+actions.aoe+=/ice_nova
+actions.aoe+=/comet_storm
+actions.aoe+=/ice_lance,if=buff.fingers_of_frost.react|debuff.frozen.remains>travel_time|remaining_winters_chill&debuff.winters_chill.remains>travel_time
+actions.aoe+=/radiant_spark,if=soulbind.combat_meditation
+actions.aoe+=/mirrors_of_torment
+actions.aoe+=/shifting_power
+actions.aoe+=/fire_blast,if=runeforge.disciplinary_command&cooldown.buff_disciplinary_command.ready&buff.disciplinary_command_fire.down
+actions.aoe+=/arcane_explosion,if=mana.pct>30&active_enemies>=6&!runeforge.glacial_fragments
+actions.aoe+=/ebonbolt
+actions.aoe+=/ice_lance,if=runeforge.glacial_fragments&talent.splitting_ice&travel_time<ground_aoe.blizzard.remains
+actions.aoe+=/wait,sec=0.1,if=runeforge.glacial_fragments&talent.splitting_ice
+actions.aoe+=/frostbolt
+
+actions.cds=potion,if=prev_off_gcd.icy_veins|fight_remains<30
+actions.cds+=/deathborne
+actions.cds+=/mirrors_of_torment,if=active_enemies<3&(conduit.siphoned_malice|soulbind.wasteland_propriety)
+actions.cds+=/rune_of_power,if=cooldown.icy_veins.remains>12&buff.rune_of_power.down
+actions.cds+=/icy_veins,if=buff.rune_of_power.down&(buff.icy_veins.down|talent.rune_of_power)&(buff.slick_ice.down|active_enemies>=2)
+actions.cds+=/time_warp,if=runeforge.temporal_warp&buff.exhaustion.up&(prev_off_gcd.icy_veins|fight_remains<40)
+actions.cds+=/use_items
+actions.cds+=/blood_fury
+actions.cds+=/berserking
+actions.cds+=/lights_judgment
+actions.cds+=/fireblood
+actions.cds+=/ancestral_call
+actions.cds+=/bag_of_tricks
+
+actions.movement=blink_any,if=movement.distance>10
+actions.movement+=/ice_floes,if=buff.ice_floes.down
+actions.movement+=/arcane_explosion,if=mana.pct>30&active_enemies>=2
+actions.movement+=/fire_blast
+actions.movement+=/ice_lance
+
+actions.st=flurry,if=(remaining_winters_chill=0|debuff.winters_chill.down)&(prev_gcd.1.ebonbolt|buff.brain_freeze.react&(prev_gcd.1.glacial_spike|prev_gcd.1.frostbolt&(!conduit.ire_of_the_ascended|cooldown.radiant_spark.remains|runeforge.freezing_winds)|prev_gcd.1.radiant_spark|buff.fingers_of_frost.react=0&(debuff.mirrors_of_torment.up|buff.freezing_winds.up|buff.expanded_potential.react)))
+actions.st+=/frozen_orb
+actions.st+=/blizzard,if=buff.freezing_rain.up|active_enemies>=2
+actions.st+=/ray_of_frost,if=remaining_winters_chill=1&debuff.winters_chill.remains
+actions.st+=/glacial_spike,if=remaining_winters_chill&debuff.winters_chill.remains>cast_time+travel_time
+actions.st+=/ice_lance,if=remaining_winters_chill&remaining_winters_chill>buff.fingers_of_frost.react&debuff.winters_chill.remains>travel_time
+actions.st+=/comet_storm
+actions.st+=/ice_nova
+actions.st+=/radiant_spark,if=buff.freezing_winds.up&active_enemies=1
+actions.st+=/radiant_spark,if=buff.brain_freeze.react&talent.glacial_spike&conduit.ire_of_the_ascended&buff.icicles.stack>=4
+actions.st+=/ice_lance,if=buff.fingers_of_frost.react|debuff.frozen.remains>travel_time
+actions.st+=/ebonbolt
+actions.st+=/radiant_spark,if=(!talent.glacial_spike|!conduit.ire_of_the_ascended)&(!runeforge.freezing_winds|active_enemies>=2)&buff.brain_freeze.react
+actions.st+=/mirrors_of_torment
+actions.st+=/shifting_power,if=buff.rune_of_power.down&(soulbind.grove_invigoration|soulbind.field_of_blossoms|runeforge.freezing_winds&buff.freezing_winds.down|active_enemies>=2)
+actions.st+=/arcane_explosion,if=runeforge.disciplinary_command&cooldown.buff_disciplinary_command.ready&buff.disciplinary_command_arcane.down
+actions.st+=/fire_blast,if=runeforge.disciplinary_command&cooldown.buff_disciplinary_command.ready&buff.disciplinary_command_fire.down
+actions.st+=/glacial_spike,if=buff.brain_freeze.react
+actions.st+=/frostbolt
+
+head=cowl_of_the_grand_engineer,id=29986,enchant=glyph_of_power,gem_id=24030/24030/24030
+neck=the_sun_kings_talisman,id=30015
+shoulders=mantle_of_the_elven_kings,id=30024,enchant=greater_inscription_of_the_orb
+back=ruby_drape_of_the_mysticant,id=28766,enchant=subtlety
+chest=vestments_of_the_sea-witch,id=30107,enchant=exceptional_stats,gem_id=24030/24030/24030
+wrists=mindstorm_wristbands,id=29918,enchant=spellpower
+hands=handwraps_of_flowing_thought,id=28507,enchant=major_spellpower,gem_id=24030/24030
+waist=belt_of_blasting,id=30038,gem_id=24056/24059
+legs=spellstrike_pants,id=24262,enchant=runic_spellthread,gem_id=24030/24030/24030
+feet=boots_of_blasting,id=30037,enchant=boars_speed
+finger1=ring_of_recurrence,id=28753
+finger2=ring_of_endless_coils,id=30109
+trinket1=quagmirrans_eye,id=27683
+trinket2=icon_of_the_silver_crescent,id=29370
+main_hand=fang_of_the_leviathan,id=30095,enchant=soulfrost
+off_hand=sapphirons_wing_bone,id=29269
+ranged=wand_of_the_forgotten_star,id=29982
+
+# Gear Summary
+# gear_ilvl=184.40
+# gear_stamina=860
+# gear_intellect=777
+# gear_crit_rating=568
+# gear_haste_rating=604
+# gear_versatility_rating=211
+# gear_armor=292

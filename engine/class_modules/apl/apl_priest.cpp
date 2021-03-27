@@ -228,11 +228,6 @@ void shadow( player_t* p )
                     "enabled|(talent.searing_nightmare.enabled&!variable.searing_nightmare_cutoff))",
                     "Don't use Devouring Plague if you can get into Voidform instead, or if Searing Nightmare is "
                     "talented and will hit enough targets." );
-  main->add_action( p, "Void Bolt",
-                    "if=spell_targets.mind_sear<(4+conduit.dissonant_echoes.enabled)&insanity<=85&talent.searing_"
-                    "nightmare.enabled|!talent.searing_nightmare.enabled",
-                    "Use VB on CD if you don't need to cast Devouring Plague, and there are less than 4 targets out (5 "
-                    "with conduit)." );
   main->add_action( p, "Shadow Word: Death",
                     "target_if=(target.health.pct<20&spell_targets.mind_sear<4)|(pet.fiend.active&runeforge."
                     "shadowflame_prism.equipped)",

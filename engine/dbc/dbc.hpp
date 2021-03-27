@@ -24,7 +24,6 @@
 #include "util/util.hpp"
 #include "util/allocator.hpp"
 
-#include "dbc/azerite.hpp"
 #include "dbc/rand_prop_points.hpp"
 #include "dbc/spell_item_enchantment.hpp"
 #include "dbc/gem_data.hpp"
@@ -501,13 +500,6 @@ public:
   std::vector<const spelleffect_data_t*> effect_categories_affecting_spell( const spell_data_t* ) const;
 
   std::pair<const curve_point_t*, const curve_point_t*> curve_point( unsigned curve_id, double value ) const;
-
-  // Azerite
-  const azerite_power_entry_t& azerite_power( unsigned power_id ) const;
-  const azerite_power_entry_t& azerite_power( util::string_view name, bool tokenized = false ) const;
-  util::span<const azerite_power_entry_t> azerite_powers() const;
-
-  unsigned azerite_item_level( unsigned power_level ) const;
 
   // Child items
   unsigned child_item( unsigned ) const;

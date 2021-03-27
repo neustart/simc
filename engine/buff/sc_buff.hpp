@@ -15,7 +15,6 @@
 #include "sc_enums.hpp"
 #include "dbc/dbc.hpp"
 #include "player/sc_actor_pair.hpp"
-#include "player/covenant.hpp"
 #include "util/sample_data.hpp"
 #include "util/span.hpp"
 #include "util/string_view.hpp"
@@ -358,8 +357,6 @@ public:
 
   virtual buff_t* apply_affecting_aura( const spell_data_t* spell );
   virtual buff_t* apply_affecting_effect( const spelleffect_data_t& effect );
-  virtual buff_t* apply_affecting_conduit( const conduit_data_t& conduit, int effect_num = 1 );
-  virtual buff_t* apply_affecting_conduit_effect( const conduit_data_t& conduit, size_t effect_num );
 
   friend void format_to( const buff_t&, fmt::format_context::iterator );
 private:
@@ -466,7 +463,6 @@ struct damage_buff_t : public buff_t
 
   damage_buff_t( actor_pair_t q, util::string_view name );
   damage_buff_t( actor_pair_t q, util::string_view name, const spell_data_t* );
-  damage_buff_t( actor_pair_t q, util::string_view name, const spell_data_t*, const conduit_data_t& );
 
   damage_buff_t* parse_spell_data( const spell_data_t*, double = 0.0 );
   damage_buff_t* apply_mod_affecting_effect( damage_buff_modifier_t&, const spelleffect_data_t& );
@@ -476,12 +472,6 @@ struct damage_buff_t : public buff_t
   damage_buff_t* apply_affecting_aura( const spell_data_t* spell ) override
   {
     buff_t::apply_affecting_aura( spell );
-    return this;
-  }
-
-  damage_buff_t* apply_affecting_conduit( const conduit_data_t& conduit, int effect_num = 1 ) override
-  {
-    buff_t::apply_affecting_conduit( conduit, effect_num );
     return this;
   }
 

@@ -5,7 +5,6 @@
 
 #include "config.hpp"
 #include "simulationcraft.hpp"
-#include "player/covenant.hpp"
 
 namespace { // UNNAMED NAMESPACE
 // ==========================================================================

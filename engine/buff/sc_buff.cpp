@@ -1392,36 +1392,6 @@ buff_t* buff_t::apply_affecting_effect( const spelleffect_data_t& effect )
   return this;
 }
 
-buff_t* buff_t::apply_affecting_conduit( const conduit_data_t& conduit, int effect_num )
-{
-  assert( effect_num == -1 || effect_num > 0 );
-
-  if ( !conduit.ok() )
-    return this;
-
-  for ( size_t i = 1; i <= conduit->effect_count(); i++ )
-  {
-    if ( effect_num == -1 || as<size_t>( effect_num ) == i )
-      apply_affecting_conduit_effect( conduit, i );
-    else
-      apply_affecting_effect( conduit->effectN( i ) );
-  }
-
-  return this;
-}
-
-buff_t* buff_t::apply_affecting_conduit_effect( const conduit_data_t& conduit, size_t effect_num )
-{
-  if ( !conduit.ok() )
-    return this;
-
-  spelleffect_data_t effect = conduit->effectN( effect_num );
-  effect._base_value = conduit.value();
-  apply_affecting_effect( effect );
-
-  return this;
-}
-
 void buff_t::datacollection_begin()
 {
   iteration_uptime_sum = timespan_t::zero();
@@ -3139,58 +3109,58 @@ damage_buff_t::damage_buff_t( actor_pair_t q, util::string_view name, const spel
   parse_spell_data( spell );
 }
 
-damage_buff_t::damage_buff_t( actor_pair_t q, util::string_view name, const spell_data_t* spell, const conduit_data_t& conduit )
-  : buff_t( q, name, spell, nullptr )
-{
-  if ( conduit.ok() )
-  {
-    parse_spell_data( spell, conduit.percent() );
-  }
-}
+//damage_buff_t::damage_buff_t( actor_pair_t q, util::string_view name, const spell_data_t* spell, const conduit_data_t& conduit )
+//  : buff_t( q, name, spell, nullptr )
+//{
+//  if ( conduit.ok() )
+//  {
+//    parse_spell_data( spell, conduit.percent() );
+//  }
+//}
 
-damage_buff_t* damage_buff_t::parse_spell_data( const spell_data_t* spell, double conduit_value )
-{
-  if ( !spell->ok() )
-    return this;
-
-  for ( size_t idx = 1; idx <= spell->effect_count(); idx++ )
-  {
-    const spelleffect_data_t& e = spell->effectN( idx );
-    if ( !e.ok() || e.type() != E_APPLY_AURA )
-      continue;
-
-    // Pass down the conduit override value if this is the first effect
-    double multiplier = ( idx == 1 ) ? conduit_value : 0.0;
-
-    if ( e.subtype() == A_MOD_AUTO_ATTACK_PCT || e.subtype() == A_MOD_AUTO_ATTACK_FROM_CASTER )
-    {
-      set_auto_attack_mod( spell, idx, multiplier );
-      sim->print_debug( "{} damage buff AA multiplier initialized to {}", *this, auto_attack_mod.multiplier );
-    }
-    else if ( e.subtype() == A_ADD_PCT_MODIFIER )
-    {
-      if ( e.property_type() == P_GENERIC )
-      {
-        set_direct_mod( spell, idx, multiplier );
-        sim->print_debug( "{} damage buff direct multiplier initialized to {}", *this, direct_mod.multiplier );
-      }
-      else if ( e.property_type() == P_TICK_DAMAGE )
-      {
-        set_periodic_mod( spell, idx, multiplier );
-        sim->print_debug( "{} damage buff periodic multiplier initialized to {}", *this, periodic_mod.multiplier );
-      }
-    }
-    else if ( e.subtype() == A_MOD_DAMAGE_FROM_CASTER_SPELLS )
-    {
-      set_direct_mod( spell, idx, multiplier );
-      set_periodic_mod( spell, idx, multiplier );
-      sim->print_debug( "{} damage buff direct multiplier initialized to {}", *this, direct_mod.multiplier );
-      sim->print_debug( "{} damage buff periodic multiplier initialized to {}", *this, periodic_mod.multiplier );
-    }
-  }
-
-  return this;
-}
+//damage_buff_t* damage_buff_t::parse_spell_data( const spell_data_t* spell, double conduit_value )
+//{
+//  if ( !spell->ok() )
+//    return this;
+//
+//  for ( size_t idx = 1; idx <= spell->effect_count(); idx++ )
+//  {
+//    const spelleffect_data_t& e = spell->effectN( idx );
+//    if ( !e.ok() || e.type() != E_APPLY_AURA )
+//      continue;
+//
+//    // Pass down the conduit override value if this is the first effect
+//    double multiplier = ( idx == 1 ) ? conduit_value : 0.0;
+//
+//    if ( e.subtype() == A_MOD_AUTO_ATTACK_PCT || e.subtype() == A_MOD_AUTO_ATTACK_FROM_CASTER )
+//    {
+//      set_auto_attack_mod( spell, idx, multiplier );
+//      sim->print_debug( "{} damage buff AA multiplier initialized to {}", *this, auto_attack_mod.multiplier );
+//    }
+//    else if ( e.subtype() == A_ADD_PCT_MODIFIER )
+//    {
+//      if ( e.property_type() == P_GENERIC )
+//      {
+//        set_direct_mod( spell, idx, multiplier );
+//        sim->print_debug( "{} damage buff direct multiplier initialized to {}", *this, direct_mod.multiplier );
+//      }
+//      else if ( e.property_type() == P_TICK_DAMAGE )
+//      {
+//        set_periodic_mod( spell, idx, multiplier );
+//        sim->print_debug( "{} damage buff periodic multiplier initialized to {}", *this, periodic_mod.multiplier );
+//      }
+//    }
+//    else if ( e.subtype() == A_MOD_DAMAGE_FROM_CASTER_SPELLS )
+//    {
+//      set_direct_mod( spell, idx, multiplier );
+//      set_periodic_mod( spell, idx, multiplier );
+//      sim->print_debug( "{} damage buff direct multiplier initialized to {}", *this, direct_mod.multiplier );
+//      sim->print_debug( "{} damage buff periodic multiplier initialized to {}", *this, periodic_mod.multiplier );
+//    }
+//  }
+//
+//  return this;
+//}
 
 damage_buff_t* damage_buff_t::apply_mod_affecting_effect( damage_buff_modifier_t& mod, const spelleffect_data_t& effect )
 {

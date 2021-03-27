@@ -592,7 +592,30 @@ struct incinerate_t : public destruction_spell_t
 
 };
 
+struct shadow_bolt_t : public destruction_spell_t
+{
+  shadow_bolt_t( warlock_t* p, util::string_view options_str )
+    : destruction_spell_t( "Shadow Bolt", p, p->find_spell( 686 ) )
+  {
+    parse_options( options_str );
+    energize_type     = action_energize::ON_CAST;
+    energize_resource = RESOURCE_SOUL_SHARD;
+    energize_amount   = 0;
+  }
 
+  void execute() override
+  {
+    destruction_spell_t::execute();
+
+  }
+
+  double action_multiplier() const override
+  {
+    double m = destruction_spell_t::action_multiplier();
+
+    return m;
+  }
+};
 
 struct chaos_bolt_t : public destruction_spell_t
 {
@@ -1078,6 +1101,8 @@ action_t* warlock_t::create_action_destruction( util::string_view action_name, c
     return new havoc_t( this, options_str );
   if ( action_name == "summon_infernal" )
     return new summon_infernal_t( this, options_str );
+  if ( action_name == "shadow_bolt" )
+    return new shadow_bolt_t( this, options_str );
 
   // Talents
   if ( action_name == "soul_fire" )

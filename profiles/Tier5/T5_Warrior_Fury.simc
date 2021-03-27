@@ -1,0 +1,108 @@
+warrior="PR_Warrior_Fury"
+source=default
+spec=fury
+level=60
+race=mechagnome
+role=attack
+position=back
+talents=2113323
+covenant=venthyr
+soulbind=nadjia_the_mistblade,thrill_seeker/ashen_juggernaut:4
+
+# Default consumables
+potion=spectral_strength
+flask=spectral_flask_of_power
+food=feast_of_gluttonous_hedonism
+augmentation=veiled
+temporary_enchant=main_hand:shaded_sharpening_stone/off_hand:shaded_sharpening_stone
+
+# This default action priority list is automatically created based on your character.
+# It is a attempt to provide you with a action list that is both simple and practicable,
+# while resulting in a meaningful and good simulation. It may not result in the absolutely highest possible dps.
+# Feel free to edit, adapt and improve it to your own needs.
+# SimulationCraft is always looking for updates and improvements to the default action lists.
+
+# Executed before combat begins. Accepts non-harmful actions only.
+actions.precombat=flask
+actions.precombat+=/food
+actions.precombat+=/augmentation
+# Snapshot raid buffed stats before combat begins and pre-potting is done.
+actions.precombat+=/snapshot_stats
+actions.precombat+=/recklessness,if=!runeforge.signet_of_tormented_kings.equipped
+
+# Executed every time the actor is available.
+actions=auto_attack
+actions+=/charge
+actions+=/variable,name=execute_phase,value=talent.massacre&target.health.pct<35|target.health.pct<20|target.health.pct>80&covenant.venthyr
+# This is mostly to prevent cooldowns from being accidentally used during movement.
+actions+=/run_action_list,name=movement,if=movement.distance>5
+actions+=/heroic_leap,if=(raid_event.movement.distance>25&raid_event.movement.in>45)
+actions+=/sequence,if=active_enemies=1&covenant.venthyr.enabled&runeforge.signet_of_tormented_kings.equipped,name=BT&Reck:bloodthirst:recklessness
+actions+=/sequence,if=active_enemies=1&!covenant.venthyr.enabled&runeforge.signet_of_tormented_kings.equipped,name=BT&Charge:bloodthirst:heroic_charge
+actions+=/potion
+actions+=/pummel,if=target.debuff.casting.react
+actions+=/rampage,if=cooldown.recklessness.remains<3&talent.reckless_abandon.enabled
+actions+=/recklessness,if=!runeforge.signet_of_tormented_kings.equipped&gcd.remains=0&((buff.bloodlust.up|talent.anger_management.enabled|raid_event.adds.in>10)|target.time_to_die>100|variable.execute_phase|target.time_to_die<15&raid_event.adds.in>10)&(spell_targets.whirlwind=1|buff.meat_cleaver.up)
+actions+=/recklessness,use_off_gcd=1,if=runeforge.signet_of_tormented_kings.equipped&gcd.remains&prev_gcd.1.rampage&((buff.bloodlust.up|talent.anger_management.enabled|raid_event.adds.in>10)|target.time_to_die>100|variable.execute_phase|target.time_to_die<15&raid_event.adds.in>10)&(spell_targets.whirlwind=1|buff.meat_cleaver.up)
+actions+=/whirlwind,if=spell_targets.whirlwind>1&!buff.meat_cleaver.up|raid_event.adds.in<gcd&!buff.meat_cleaver.up
+actions+=/blood_fury
+actions+=/berserking,if=buff.recklessness.up
+actions+=/lights_judgment,if=buff.recklessness.down&debuff.siegebreaker.down
+actions+=/fireblood
+actions+=/ancestral_call
+actions+=/bag_of_tricks,if=buff.recklessness.down&debuff.siegebreaker.down&buff.enrage.up
+actions+=/run_action_list,name=single_target
+
+actions.movement=heroic_leap
+
+actions.single_target=raging_blow,if=runeforge.will_of_the_berserker.equipped&buff.will_of_the_berserker.remains<gcd
+actions.single_target+=/crushing_blow,if=runeforge.will_of_the_berserker.equipped&buff.will_of_the_berserker.remains<gcd
+actions.single_target+=/cancel_buff,name=bladestorm,if=spell_targets.whirlwind=1&gcd.remains=0&(talent.massacre.enabled|covenant.venthyr.enabled)&variable.execute_phase&(rage>90|!cooldown.condemn.remains)
+actions.single_target+=/bladestorm,if=buff.enrage.remains>gcd*2.5&spell_targets.whirlwind>1
+actions.single_target+=/condemn,if=buff.enrage.up&variable.execute_phase
+actions.single_target+=/siegebreaker,if=spell_targets.whirlwind>1|raid_event.adds.in>15
+actions.single_target+=/rampage,if=buff.recklessness.up|(buff.enrage.remains<gcd|rage>90)|buff.frenzy.remains<1.5
+actions.single_target+=/condemn
+actions.single_target+=/execute
+actions.single_target+=/bladestorm,if=buff.enrage.up&(!buff.recklessness.remains|rage<50)&spell_targets.whirlwind=1&raid_event.adds.in>45
+actions.single_target+=/bloodthirst,if=buff.enrage.down|conduit.vicious_contempt.rank>5&target.health.pct<35&!talent.cruelty.enabled
+actions.single_target+=/bloodbath,if=buff.enrage.down|conduit.vicious_contempt.rank>5&target.health.pct<35&!talent.cruelty.enabled
+actions.single_target+=/dragon_roar,if=buff.enrage.up&(spell_targets.whirlwind>1|raid_event.adds.in>15)
+actions.single_target+=/whirlwind,if=buff.merciless_bonegrinder.up&spell_targets.whirlwind>3
+actions.single_target+=/onslaught
+actions.single_target+=/raging_blow,if=charges=2|buff.recklessness.up&variable.execute_phase&talent.massacre.enabled
+actions.single_target+=/crushing_blow,if=charges=2
+actions.single_target+=/bloodthirst
+actions.single_target+=/bloodbath
+actions.single_target+=/raging_blow
+actions.single_target+=/crushing_blow
+actions.single_target+=/whirlwind
+
+head=destroyer_battle-helm,id=30120,enchant=glyph_of_ferocity,gem_id=32409/24058
+neck=pendant_of_the_perilous,id=30022
+shoulders=shoulderpads_of_the_stranger,id=30055,enchant=greater_inscription_of_the_blade,gem_id=24058
+back=vengeance_wrap,id=24259,enchant=greater_agility,gem_id=24027
+chest=bloodsea_brigands_vest,id=30101,enchant=exceptional_stats,gem_id=24027/24027/24027
+wrists=bracers_of_eradication,id=30057,enchant=brawn,gem_id=24058
+hands=gloves_of_the_searing_grip,id=29947,enchant=major_strength
+waist=belt_of_one-hundred_deaths,id=30106,gem_id=24027/24027
+legs=leggings_of_murderous_intent,id=29995,enchant=nethercobra_leg_armo
+feet=boots_of_utter_darkness,id=30039,enchant=dexterity
+finger1=band_of_the_ranger-general,id=29997
+finger2=ring_of_a_thousand_marks,id=28757
+trinket1=dragonspine_trophy,id=28830
+trinket2=tsunami_talisman,id=30627
+main_hand=dragonstrike,id=28439,enchant=mongoose
+off_hand=talon_of_azshara,id=30082,enchant=mongoose
+ranged=serpent_spine_longbow,id=30105
+
+# Gear Summary
+# gear_ilvl=184.38
+# gear_strength=642
+# gear_stamina=944
+# gear_attack_power=40
+# gear_crit_rating=158
+# gear_haste_rating=865
+# gear_mastery_rating=332
+# gear_versatility_rating=138
+# gear_armor=1021

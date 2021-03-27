@@ -13,7 +13,6 @@
 #include "gear_stats.hpp"
 #include "rating.hpp"
 #include "weapon.hpp"
-#include "runeforge_data.hpp"
 #include "effect_callbacks.hpp"
 #include "util/plot_data.hpp"
 #include "player_collected_data.hpp"
@@ -62,10 +61,7 @@ struct spelleffect_data_t;
 struct stat_buff_t;
 struct stats_t;
 struct uptime_t;
-namespace azerite {
-    class azerite_state_t;
-    class azerite_essence_state_t;
-}
+
 namespace rng {
     struct rng_t;
 }
@@ -184,15 +180,6 @@ struct player_t : public actor_t
 
   // Profs
   std::array<int, PROFESSION_MAX> profession;
-
-  /// Azerite state object
-  std::unique_ptr<azerite::azerite_state_t> azerite;
-
-  /// Azerite essence state object
-  std::unique_ptr<azerite::azerite_essence_state_t> azerite_essence;
-
-  /// Covenant state object
-  std::unique_ptr<covenant::covenant_state_t> covenant;
 
   // TODO: FIXME, these stats should not be increased by scale factor deltas
   struct base_initial_current_t
@@ -750,14 +737,6 @@ public:
   pet_t* cast_pet();
   const pet_t* cast_pet() const;
 
-  azerite_power_t find_azerite_spell( util::string_view name, bool tokenized = false ) const;
-  azerite_power_t find_azerite_spell( unsigned power_id ) const;
-  azerite_essence_t find_azerite_essence( util::string_view name, bool tokenized = false ) const;
-  azerite_essence_t find_azerite_essence( unsigned power_id ) const;
-
-  item_runeforge_t find_runeforge_legendary( util::string_view name, bool tokenized = false ) const;
-
-  conduit_data_t find_conduit_spell( util::string_view name ) const;
   const spell_data_t* find_soulbind_spell( util::string_view name ) const;
   const spell_data_t* find_covenant_spell( util::string_view name ) const;
 

@@ -1,0 +1,60 @@
+warlock="T4_Warlock_Destruction"
+source=default
+spec=destruction
+level=60
+race=gnome
+role=spell
+position=ranged_back
+talents=3203012
+
+# Default consumables
+potion=destruction_potion
+flask=flask_of_pure_death
+food=poached_bluefish
+temporary_enchant=main_hand:brilliant_wizard_oil
+
+# This default action priority list is automatically created based on your character.
+# It is a attempt to provide you with a action list that is both simple and practicable,
+# while resulting in a meaningful and good simulation. It may not result in the absolutely highest possible dps.
+# Feel free to edit, adapt and improve it to your own needs.
+# SimulationCraft is always looking for updates and improvements to the default action lists.
+
+# Executed before combat begins. Accepts non-harmful actions only.
+actions.precombat=flask
+actions.precombat+=/food
+actions.precombat+=/summon_pet
+actions.precombat+=/grimoire_of_sacrifice
+actions.precombat+=/snapshot_stats
+actions.precombat+=/incinerate
+
+# Executed every time the actor is available.
+actions+=/incinerate
+
+head=spellstrike_hood,id=24266,enchant=glyph_of_power,gem_id=24030/24030/24030
+neck=ritssyns_lost_pendant,id=30666
+shoulders=voidheart_mantle,id=28967,enchant=greater_inscription_of_the_orb,gem_id=24030/24030
+back=ruby_drape_of_the_mysticant,id=28766,enchant=subtlety
+chest=voidheart_robe,id=28964,enchant=exceptional_stats,gem_id=24030/24030/24030
+wrists=bracers_of_havok,id=24250,enchant=spellpower,gem_id=24030
+hands=soul-eaters_handwraps,id=28780,enchant=major_spellpower,gem_id=24030/24030
+waist=girdle_of_ruination,id=24256,gem_id=24030/24030
+legs=spellstrike_pants,id=24262,enchant=runic_spellthread,gem_id=24030/24030/24030
+feet=frozen_shadoweave_boots,id=21870,enchant=boars_speed,gem_id=24030/24030
+finger1=ashyens_Gift,id=29172
+finger2=band_of_crimson_fury,id=28793
+trinket1=quagmirrans_eye,id=27683
+trinket2=icon_of_the_silver_crescent,id=29370
+main_hand=bloodmaw_magus-blade,id=28802,enchant=soulfrost
+off_hand=orb_of_the_soul-eater,id=29272
+ranged=tirisfal_wand_of_ascendancy,id=28673
+
+# Gear Summary
+# gear_ilvl=229.40
+# gear_stamina=1531
+# gear_intellect=1189
+# gear_crit_rating=211
+# gear_haste_rating=866
+# gear_mastery_rating=553
+# gear_versatility_rating=331
+# gear_armor=373
+default_pet=imp

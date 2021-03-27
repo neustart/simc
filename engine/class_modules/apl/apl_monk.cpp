@@ -531,7 +531,6 @@ void windwalker( player_t* p )
   cd_sef->add_action( "fallen_order,if=raid_event.adds.in>30|raid_event.adds.up" );
   cd_sef->add_action( "bonedust_brew,if=raid_event.adds.in>50|raid_event.adds.up,line_cd=60" );
 
-  cd_sef->add_action( "storm_earth_and_fire_fixate,if=conduit.coordinated_offensive.enabled" );
   cd_sef->add_action(
       p, "Storm, Earth, and Fire",
       "if=cooldown.storm_earth_and_fire.charges=2|fight_remains<20|(raid_event.adds.remains>15|!covenant.kyrian&"

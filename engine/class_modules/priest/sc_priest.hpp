@@ -9,7 +9,6 @@
 // in the respective spec file if they are limited to one spec only.
 
 #pragma once
-#include "player/covenant.hpp"
 #include "player/pet_spawner.hpp"
 #include "sc_enums.hpp"
 
@@ -396,67 +395,6 @@ public:
     // The amount of allies to assume for Cauterizing Shadows healing
     int cauterizing_shadows_allies = 3;
   } options;
-
-  // Legendaries
-  struct
-  {
-    // Generic
-    item_runeforge_t sephuzs_proclamation;
-    // Shared
-    item_runeforge_t cauterizing_shadows;
-    item_runeforge_t twins_of_the_sun_priestess;
-    // Holy
-    item_runeforge_t divine_image;          // NYI
-    item_runeforge_t harmonious_apparatus;  // NYI
-    // Disc
-    item_runeforge_t kiss_of_death;
-    item_runeforge_t the_penitent_one;  // Effect implemented, but not hooked up to PW:Radiance
-    // Shadow
-    item_runeforge_t painbreaker_psalm;
-    item_runeforge_t shadowflame_prism;
-    item_runeforge_t eternal_call_to_the_void;
-    item_runeforge_t talbadars_stratagem;
-  } legendary;
-
-  // Conduits
-  struct
-  {
-    // Generic Priest
-    conduit_data_t power_unto_others;
-    // Holy
-    conduit_data_t holy_oration;  // NYI
-    // Discipline
-    conduit_data_t swift_penitence;  // NYI
-    // Shadow
-    conduit_data_t dissonant_echoes;
-    conduit_data_t mind_devourer;
-    conduit_data_t rabid_shadows;
-    conduit_data_t haunting_apparitions;
-    // Covenant
-    conduit_data_t courageous_ascension;
-    conduit_data_t festering_transfusion;
-    conduit_data_t fae_fermata;
-    conduit_data_t shattered_perceptions;
-  } conduits;
-
-  // Covenants
-  struct
-  {
-    // Night Fae
-    const spell_data_t* fae_guardians;
-    // Necrolord
-    const spell_data_t* unholy_nova;
-    // Venthyr
-    const spell_data_t* mindgames;
-    const spell_data_t* mindgames_healing_reversal;
-    const spell_data_t* mindgames_damage_reversal;
-    // Kyrian
-    const spell_data_t* ascended_blast;
-    const spell_data_t* ascended_blast_heal;
-    const spell_data_t* ascended_eruption;
-    const spell_data_t* ascended_nova;
-    const spell_data_t* boon_of_the_ascended;
-  } covenant;
 
   priest_t( sim_t* sim, util::string_view name, race_e r );
 

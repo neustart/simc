@@ -4,18 +4,13 @@
 // ==========================================================================
 
 #include "dbc.hpp"
-#include "dbc/item_runeforge.hpp"
 #include "specialization_spell.hpp"
 #include "active_spells.hpp"
-#include "covenant_data.hpp"
 #include "mastery_spells.hpp"
 #include "racial_spells.hpp"
 #include "sim/sc_expressions.hpp"
-#include "azerite.hpp"
 #include "spell_query/spell_data_expr.hpp"
 #include "sim/sc_sim.hpp"
-#include "player/covenant.hpp"
-#include "player/runeforge_data.hpp"
 #include "util/util.hpp"
 
 namespace { // anonymous namespace ==========================================

@@ -352,7 +352,7 @@ bool report_helper::check_gear( player_t& p, sim_t& sim )
   unsigned int max_ilevel_allowed = 0;
   unsigned int legendary_ilevel   = 0;
   int max_gems                    = 0;
-  unsigned int max_conduit_rank   = 0;
+  //unsigned int max_conduit_rank   = 0;
   int max_legendary_items         = 1;
   int equipped_legendaries        = 0; // counter
   int equipped_gems               = 0; // counter
@@ -362,7 +362,7 @@ bool report_helper::check_gear( player_t& p, sim_t& sim )
     tier_name          = "PR";
     max_ilevel_allowed = 184;
     legendary_ilevel   = 190;
-    max_conduit_rank   = 4;
+    //max_conduit_rank   = 4;
   }
   // DS copies T26 ruleset as of 2020-12-01
   else if ( p.report_information.save_str.find( "DS" ) != std::string::npos )
@@ -370,7 +370,7 @@ bool report_helper::check_gear( player_t& p, sim_t& sim )
     tier_name          = "DS";
     max_ilevel_allowed = 233;
     legendary_ilevel   = 235;
-    max_conduit_rank   = 7;
+    //max_conduit_rank   = 7;
   }
   else if ( p.report_information.save_str.find( "T26" ) != std::string::npos )
   {
@@ -378,7 +378,7 @@ bool report_helper::check_gear( player_t& p, sim_t& sim )
     max_ilevel_allowed = 233;
     legendary_ilevel   = 235;
     max_gems           = 6;
-    max_conduit_rank   = 7;
+    //max_conduit_rank   = 7;
   }
   else
   {
@@ -521,19 +521,6 @@ bool report_helper::check_gear( player_t& p, sim_t& sim )
     sim.error( "Player {} has {} legendary items equipped, legendary item count for {} is {}, at item level {}.\n",
                p.name(), equipped_legendaries, tier_name, max_legendary_items, legendary_ilevel );
   }
-
-  // Check that conduit ranks don't exceed the limit
-  if ( p.covenant -> enabled() )
-  {
-    p.covenant -> check_conduits( tier_name, max_conduit_rank );
-  }
-  else
-  {
-    sim.error( "Player {} doesn't have a covenant selected!\n", p.name() );
-  }
-
-  return true;
-}
 
 void report_helper::generate_player_buff_lists( player_t& p, player_processed_report_information_t& ri )
 {

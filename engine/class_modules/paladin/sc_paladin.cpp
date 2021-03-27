@@ -124,12 +124,6 @@ namespace buffs {
       break;
     }
 
-    // ... or if we have Light's Decree
-    // TODO(mserrano): is this the right ordering?
-    //    apparently currently this just doesn't work at all with SW
-    if ( p -> azerite.lights_decree.ok() && !( p -> bugs && took_sw ) )
-      base_buff_duration += p -> spells.lights_decree -> effectN( 2 ).time_value();
-
     // let the ability handle the cooldown
     cooldown -> duration = 0_ms;
 
@@ -190,8 +184,6 @@ struct avenging_wrath_t : public paladin_spell_t
 
     if ( p -> spells.avenging_wrath_2 -> ok() )
       cooldown -> duration += timespan_t::from_millis( p -> spells.avenging_wrath_2 -> effectN( 1 ).base_value() );
-
-    cooldown -> duration *= 1.0 + azerite::vision_of_perfection_cdr( p -> azerite_essence.vision_of_perfection );
   }
 
   void execute() override

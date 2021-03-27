@@ -14,10 +14,7 @@ namespace actions
 {
 struct drain_life_t : public warlock_spell_t
 {
-  //Note: Soul Rot (Night Fae Covenant) turns Drain Life into a multi-target channeled spell. Nothing else in simc behaves this way and
-  //we currently do not have core support for it. Applying this dot to the secondary targets should cover most of the behavior, although
-  //it will be unable to handle the case where primary channel target dies (in-game, this appears to force-swap primary target to another
-  //target currently affected by Drain Life if possible).
+
   struct drain_life_dot_t : public warlock_spell_t
   {
     drain_life_dot_t( warlock_t* p, util::string_view options_str) : warlock_spell_t( "drain_life_aoe", p, p->find_spell( "Drain Life" ) )

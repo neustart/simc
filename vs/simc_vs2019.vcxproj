@@ -26,7 +26,7 @@
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+	<Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -70,12 +70,17 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-    <ItemDefinitionGroup Condition="$(Configuration.Contains('NoNetworking'))">
+  <ItemDefinitionGroup Condition="$(Configuration.Contains('NoNetworking'))">
     <ClCompile>
       <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);SC_NO_NETWORKING</PreprocessorDefinitions>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-NoNetworking|x64'">NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug-NoNetworking|x64'">C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.28.29910\include</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories Condition="'$(Configuration)|$(Platform)'=='Debug-NoNetworking|x64'">C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.28.29910\lib\x64</AdditionalLibraryDirectories>
+    </Link>
   </ItemDefinitionGroup>
-    <ItemDefinitionGroup Condition="!$(Configuration.Contains('NoNetworking'))">
+  <ItemDefinitionGroup Condition="!$(Configuration.Contains('NoNetworking'))">
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>crypt32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>

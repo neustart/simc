@@ -1,8 +1,8 @@
-warlock="T26_Warlock_Destruction"
+warlock="T4_Warlock_Destruction"
 source=default
 spec=destruction
 level=60
-race=mechagnome
+race=gnome
 role=spell
 position=ranged_back
 talents=3203012
@@ -105,21 +105,23 @@ actions.havoc+=/chaos_bolt,if=cast_time<havoc_remains
 actions.havoc+=/shadowburn
 actions.havoc+=/incinerate,if=cast_time<havoc_remains
 
-head=grimveiled_hood,id=173245,bonus_id=6648/6649/6758/7027/1532/6935,gem_id=173128
-neck=charm_of_eternal_winter,id=183040,bonus_id=7187/1498/6935,gem_id=173128
-shoulders=shawl_of_the_penitent,id=183020,bonus_id=7187/1498
-back=crest_of_the_legionnaire_general,id=183032,bonus_id=7187/1498
-chest=robes_of_the_cursed_commando,id=182998,bonus_id=7187/1498,enchant=eternal_stats
-wrists=grim_pursuants_maille,id=182996,bonus_id=7187/1498/6935,gem_id=173128,enchant=eternal_intellect
-hands=impossibly_oversized_mitts,id=183022,bonus_id=7187/1498
-waist=shadewarped_sash,id=183004,bonus_id=7187/1498/6935,gem_id=173128
-legs=leggings_of_lethal_reverberations,id=182981,bonus_id=7187/1498
-feet=slippers_of_the_forgotten_heretic,id=182979,bonus_id=7187/1498
-finger1=hyperlight_band,id=183038,bonus_id=7187/1498/6935,gem_id=173128,enchant=tenet_of_haste
-finger2=most_regal_signet_of_sire_denathrius,id=183036,bonus_id=7187/1498,gem_id=173128,enchant=tenet_of_haste
-trinket1=macabre_sheet_music,id=184024,bonus_id=7187/1498
-trinket2=cabalists_hymnal,id=184028,bonus_id=7187/1498
-main_hand=sinbearers_absolution_staff,id=182392,bonus_id=7187/1531,enchant=sinful_revelation
+head=evokers_helmet_of_second_sight,id=31104,gem_id=24030/24030/24030
+neck=brooch_of_heightened_potential,id=28134
+shoulders=mana-etched_spaulders,id=27796,gem_id=24030/24030,enchant=arcanum_of_the_orb
+back=crest_of_the_legionnaire_general,id=183032
+chest=robes_of_the_cursed_commando,id=182998,enchant=eternal_stats
+wrists=grim_pursuants_maille,id=182996,gem_id=173128,enchant=eternal_intellect
+hands=impossibly_oversized_mitts,id=183022
+waist=shadewarped_sash,id=183004,gem_id=173128
+legs=leggings_of_lethal_reverberations,id=182981
+feet=slippers_of_the_forgotten_heretic,id=182979
+finger1=hyperlight_band,id=183038,gem_id=173128,enchant=tenet_of_haste
+finger2=most_regal_signet_of_sire_denathrius,id=183036,gem_id=173128,enchant=tenet_of_haste
+trinket1=macabre_sheet_music,id=184024
+trinket2=cabalists_hymnal,id=184028
+main_hand=sinbearers_absolution_staff,id=182392,enchant=major_agility
+off_hand=tears_of_heaven,id=29274
+relic=totem_of_the_void,id=12345
 
 # Gear Summary
 # gear_ilvl=229.40

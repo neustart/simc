@@ -249,13 +249,13 @@ namespace {
           fmt::format("bonus={}", fmt::join(m_item->parsed.bonus_id, ":")));
       }
 
-      if (!m_item->parsed.azerite_ids.empty())
+     /* if (!m_item->parsed.azerite_ids.empty())
       {
         params.push_back(
           fmt::format("azerite-powers={}:{}",
                       util::class_id(m_item->player->type),
                       fmt::join(m_item->parsed.azerite_ids, ":")));
-      }
+      }*/
 
       if (!m_item->parsed.crafted_stat_mod.empty())
       {

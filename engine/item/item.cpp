@@ -77,7 +77,7 @@ item_t::parsed_input_t::parsed_input_t()
     temporary_enchant_id( 0 ),
     addon_id( 0 ),
     armor( 0 ),
-    azerite_level( 0 ),
+    //azerite_level( 0 ),
     data(),
     initial_cd( timespan_t::zero() ),
     drop_level( 0 )
@@ -385,8 +385,8 @@ void format_to( const item_t& item, fmt::format_context::iterator out )
     fmt::format_to( out, " ({})", item.player -> items[ item.parent_slot ].slot_name() );
   }
 
-  if ( item.parsed.azerite_level > 0 )
-    fmt::format_to( out, " azerite_level={}", item.parsed.azerite_level );
+  //if ( item.parsed.azerite_level > 0 )
+  //  fmt::format_to( out, " azerite_level={}", item.parsed.azerite_level );
 
   if ( item.parsed.data.lfr() )
     fmt::format_to( out, " LFR" );

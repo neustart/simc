@@ -147,14 +147,6 @@ public:
 
     blessing_of_sacrifice_redirect_t* blessing_of_sacrifice_redirect;
 
-    // Covenant stuff
-    action_t* necrolord_divine_storm;
-    action_t* necrolord_shield_of_the_righteous;
-    action_t* divine_toll;
-    action_t* seasons[NUM_SEASONS];
-
-    // Conduit stuff
-    action_t* virtuous_command;
   } active;
 
   // Buffs
@@ -206,19 +198,6 @@ public:
     buff_t* empyrean_power_azerite;
     buff_t* relentless_inquisitor_azerite;
 
-    // Covenants
-    buff_t* vanquishers_hammer;
-
-    // Legendaries
-    buff_t* vanguards_momentum;
-    buff_t* bulwark_of_righteous_fury;
-    buff_t* blessing_of_dusk;
-    buff_t* blessing_of_dawn;
-    buff_t* relentless_inquisitor;
-    buff_t* the_magistrates_judgment;
-    buff_t* final_verdict;
-    buff_t* virtuous_command;
-    buff_t* reign_of_ancient_kings;
   } buffs;
 
   // Gains
@@ -428,72 +407,6 @@ public:
     const spell_data_t* crusade;
     const spell_data_t* final_reckoning;
   } talents;
-
-  struct azerite_t
-  {
-    // Shared
-    azerite_power_t avengers_might;
-    azerite_power_t grace_of_the_justicar; // Healing, NYI
-    azerite_power_t indomitable_justice;
-
-    // Holy
-
-    // Protection
-    azerite_power_t bulwark_of_light; // Defensive, NYI
-    azerite_power_t inspiring_vanguard;
-    azerite_power_t inner_light;
-    azerite_power_t soaring_shield;
-
-    // Retribution
-    azerite_power_t empyrean_power;
-    azerite_power_t expurgation;
-    azerite_power_t lights_decree;
-    azerite_power_t relentless_inquisitor;
-  } azerite;
-
-  struct {
-    azerite_essence_t memory_of_lucid_dreams;
-    azerite_essence_t vision_of_perfection;
-  } azerite_essence;
-
-  struct conduits_t {
-    conduit_data_t ringing_clarity;
-    conduit_data_t vengeful_shock;
-    conduit_data_t focused_light;
-    conduit_data_t expurgation;
-    conduit_data_t templars_vindication;
-    conduit_data_t the_long_summer;
-    conduit_data_t truths_wake;
-    conduit_data_t virtuous_command;
-    conduit_data_t righteous_might;
-    conduit_data_t hallowed_discernment;
-    conduit_data_t punish_the_guilty;
-    conduit_data_t resolute_defender;
-    conduit_data_t shielding_words;
-    conduit_data_t golden_path;
-    conduit_data_t royal_decree;
-  } conduit;
-
-  struct convenants_t {
-    const spell_data_t* kyrian;
-    const spell_data_t* venthyr;
-    const spell_data_t* necrolord;
-    const spell_data_t* night_fae;
-  } covenant;
-
-  struct legendaries_t {
-    item_runeforge_t vanguards_momentum;
-    item_runeforge_t the_mad_paragon;
-    item_runeforge_t final_verdict;
-    item_runeforge_t of_dusk_and_dawn;
-    item_runeforge_t the_magistrates_judgment;
-    item_runeforge_t bulwark_of_righteous_fury;
-    item_runeforge_t holy_avengers_engraved_sigil;
-    item_runeforge_t the_ardent_protectors_sanctum;
-    item_runeforge_t relentless_inquisitor;
-    item_runeforge_t tempest_of_the_lightbringer;
-    item_runeforge_t reign_of_endless_kings;
-  } legendary;
 
   // Paladin options
   struct options_t
@@ -799,8 +712,6 @@ public:
     this -> affected_by.avenging_wrath = this -> data().affected_by( p -> spells.avenging_wrath -> effectN( 1 ) );
     this -> affected_by.divine_purpose_cost = this -> data().affected_by( p -> spells.divine_purpose_buff -> effectN( 1 ) );
     this -> affected_by.divine_purpose = this -> data().affected_by( p -> spells.divine_purpose_buff -> effectN( 2 ) );
-    this -> affected_by.blessing_of_dawn = this -> data().affected_by( p -> legendary.of_dusk_and_dawn -> effectN( 1 ).trigger() -> effectN( 1 ) );
-    this -> affected_by.the_magistrates_judgment = this -> data().affected_by( p -> buffs.the_magistrates_judgment -> data().effectN( 1 ) );
   }
 
   paladin_t* p()
@@ -922,11 +833,6 @@ public:
     if ( affected_by.divine_purpose && p() -> buffs.divine_purpose -> up() )
     {
       am *= 1.0 + p() -> spells.divine_purpose_buff -> effectN( 2 ).percent();
-    }
-
-    if ( affected_by.blessing_of_dawn && p() -> buffs.blessing_of_dawn -> up() )
-    {
-      am *= 1.0 + p() -> legendary.of_dusk_and_dawn -> effectN ( 1 ).trigger() -> effectN ( 1 ).percent();
     }
 
     return am;
@@ -1092,27 +998,6 @@ struct paladin_melee_attack_t: public paladin_action_t < melee_attack_t >
   }
 };
 
-// holy power consumption
-// TODO(mserrano): figure out the right way to organize this longer term
-struct lights_decree_t : public paladin_spell_t
-{
-  int last_holy_power_cost;
-
-  lights_decree_t( paladin_t* p ) :
-    paladin_spell_t( "lights_decree", p, p -> find_spell( 286232 ) ),
-    last_holy_power_cost( 0 )
-  {
-    base_dd_min = base_dd_max = p -> azerite.lights_decree.value();
-    aoe = -1;
-    background = may_crit = true;
-  }
-
-  double action_multiplier() const override
-  {
-    return paladin_spell_t::action_multiplier() * last_holy_power_cost;
-  }
-};
-
 struct sanctified_wrath_t : public paladin_spell_t
 {
   int last_holy_power_cost;
@@ -1207,14 +1092,7 @@ struct holy_power_consumer_t : public Base
     if ( p -> azerite.relentless_inquisitor.ok() )
       p -> buffs.relentless_inquisitor_azerite -> trigger( num_stacks );
 
-    if ( p -> legendary.relentless_inquisitor -> ok() )
-    {
-      p -> buffs.relentless_inquisitor -> trigger();
-      // 2020-12-06 Shining Light and Divine Purpose proc 2 stacks of Relentless Inquisitor
-      if ( p -> bugs && ( p -> buffs.divine_purpose -> up() || ( is_wog && p -> buffs.shining_light_free -> up() )))
-        p -> buffs.relentless_inquisitor -> trigger();
-    }
-
+    
     if ( p -> buffs.crusade -> check() )
     {
       p -> buffs.crusade -> trigger( num_stacks );
@@ -1317,13 +1195,6 @@ struct holy_power_consumer_t : public Base
 
     if ( p -> buffs.avenging_wrath -> up() || p -> buffs.crusade -> up() )
     {
-      if ( p -> azerite.lights_decree.ok() )
-      {
-        lights_decree_t* ld = debug_cast<lights_decree_t*>( p -> active.lights_decree );
-        ld -> last_holy_power_cost = as<int>( ab::base_costs[ RESOURCE_HOLY_POWER ] );
-        ld -> execute();
-      }
-
       if ( p -> specialization() == PALADIN_RETRIBUTION && p -> talents.ret_sanctified_wrath -> ok() )
       {
         sanctified_wrath_t* st = debug_cast<sanctified_wrath_t*>( p -> active.sanctified_wrath );

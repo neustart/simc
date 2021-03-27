@@ -47,7 +47,6 @@
 #include "item/enchants.hpp"
 #include "item/item_targetdata_initializer.hpp"
 
-#include "player/azerite_data.hpp"
 #include "player/consumable.hpp"
 #include "player/sample_data_helper.hpp"
 #include "player/gear_stats.hpp"
