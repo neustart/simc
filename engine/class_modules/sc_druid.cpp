@@ -1868,11 +1868,8 @@ public:
   void apply_buff_effects()
   {
     using S = const spell_data_t*;
-    using C = const conduit_data_t&;
 
-    parse_buff_effects<C>( p()->buff.ravenous_frenzy, p()->conduit.endless_thirst );
     parse_buff_effects( p()->buff.heart_of_the_wild );
-    parse_buff_effects<C>( p()->buff.convoke_the_spirits, p()->conduit.conflux_of_elements );
 
     // Balance
     parse_buff_effects( p()->buff.moonkin_form );
