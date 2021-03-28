@@ -1005,7 +1005,6 @@ struct priest_module_t final : public module_t
                                           p->find_spell( 47788 ) );  // Let the ability handle the CD
     p->buffs.pain_suppression  = make_buff( p, "pain_suppression",
                                            p->find_spell( 33206 ) );  // Let the ability handle the CD
-    p->buffs.benevolent_faerie = make_buff<buffs::benevolent_faerie_t>( p );
   }
   void static_init() const override
   {

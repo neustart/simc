@@ -2551,16 +2551,7 @@ struct paladin_module_t : public module_t
     p -> buffs.blessing_of_sacrifice    = new buffs::blessing_of_sacrifice_t( p );
     p -> debuffs.forbearance            = new buffs::forbearance_t( p, "forbearance" );
 
-    // 9.0 Paladin Night Fae buffs
-    p -> buffs.blessing_of_summer = make_buff( p, "blessing_of_summer", p -> find_spell( 328620 ) )
-                                      -> set_chance( 1.0 )
-                                      -> set_cooldown( 0_ms );
-    p -> buffs.blessing_of_autumn = make_buff<buffs::blessing_of_autumn_t>( p );
-    p -> buffs.blessing_of_winter = make_buff( p, "blessing_of_winter", p -> find_spell( 328281 ) )
-                                      -> set_cooldown( 0_ms );
-    p -> buffs.blessing_of_spring = make_buff( p, "blessing_of_spring", p -> find_spell( 328282 ) )
-                                      -> set_cooldown( 0_ms )
-                                      -> add_invalidate( CACHE_PLAYER_HEAL_MULTIPLIER );
+    
   }
 
   void create_actions( player_t* p ) const override

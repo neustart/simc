@@ -7252,7 +7252,7 @@ struct warrior_module_t : public module_t
 
   void init( player_t* p ) const override
   {
-        p->buffs.conquerors_banner = make_buff<stat_buff_t>( p, "conquerors_banner_external", p -> find_spell( 325862 ) );
+      
   }
   void combat_begin( sim_t* ) const override
   {

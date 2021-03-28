@@ -2633,7 +2633,6 @@ public:
       ap_type = attack_power_type::NO_WEAPON;
 
     using S = const spell_data_t*;
-    using C = const conduit_data_t&;
 
     snapshots.bloodtalons  = parse_persistent_buff_effects( p->buff.bloodtalons, false );
     snapshots.tigers_fury  = parse_persistent_buff_effects( p->buff.tigers_fury, true );

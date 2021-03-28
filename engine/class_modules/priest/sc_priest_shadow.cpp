@@ -95,11 +95,7 @@ public:
   {
     priest_spell_t::impact( s );
 
-    if ( priest().buffs.mind_devourer->trigger() )
-    {
-      priest().procs.mind_devourer->occur();
-    }
-
+   
     priest().trigger_shadowy_apparitions( s );
 
     if ( priest().talents.psychic_link->ok() )
@@ -223,11 +219,7 @@ struct mind_flay_t final : public priest_spell_t
   bool ready() override
   {
     // Ascended Blast replaces Mind Flay when Boon of the Ascended is active
-    if ( priest().buffs.boon_of_the_ascended->check() )
-    {
-      return false;
-    }
-
+   
     return priest_spell_t::ready();
   }
 };
@@ -245,9 +237,7 @@ struct shadow_word_death_t final : public priest_spell_t
   shadow_word_death_t( priest_t& p, util::string_view options_str )
     : priest_spell_t( "shadow_word_death", p, p.specs.shadow_word_death ),
       execute_percent( data().effectN( 2 ).base_value() ),
-      execute_modifier( data().effectN( 3 ).percent() ),
-      insanity_per_dot( p.specs.painbreaker_psalm_insanity->effectN( 2 ).base_value() /
-                        10 )  // Spell Data stores this as 100 not 1000 or 10
+      execute_modifier( data().effectN( 3 ).percent() )
   {
     parse_options( options_str );
 
@@ -559,8 +549,7 @@ struct shadow_word_pain_t final : public priest_spell_t
   void trigger_heal()
   {
     // Use a simple option to dictate how many "allies" this will heal. All healing will go to the actor
-    double amount_to_heal = priest().options.cauterizing_shadows_allies * priest().intellect() *
-                            priest().specs.cauterizing_shadows_health->effectN( 1 ).sp_coeff();
+    double amount_to_heal = priest().options.cauterizing_shadows_allies * priest().intellect();
     priest().resource_gain( RESOURCE_HEALTH, amount_to_heal, priest().gains.cauterizing_shadows_health, this );
   }
 
@@ -579,18 +568,6 @@ struct shadow_word_pain_t final : public priest_spell_t
 
     if ( result_is_hit( s->result ) )
     {
-      if ( priest().buffs.fae_guardians->check() )
-      {
-        priest_td_t& td = get_td( s->target );
-
-        if ( !td.buffs.wrathful_faerie->up() )
-        {
-          // There can only be one of these out at once so clear it first
-          priest().remove_wrathful_faerie();
-          td.buffs.wrathful_faerie->trigger();
-        }
-      }
-
       priest().refresh_talbadars_buff( s );
     }
   }
@@ -851,18 +828,11 @@ struct devouring_plague_t final : public priest_spell_t
   {
     priest_spell_t::consume_resource();
 
-    if ( priest().buffs.mind_devourer->up() && casted )
-    {
-      priest().buffs.mind_devourer->decrement();
-    }
   }
 
   double cost() const override
   {
-    if ( priest().buffs.mind_devourer->check() || !casted )
-    {
-      return 0;
-    }
+    
 
     return priest_spell_t::cost();
   }
@@ -1033,19 +1003,13 @@ struct void_bolt_t final : public priest_spell_t
   {
     priest_spell_t::execute();
 
-    if ( priest().buffs.dissonant_echoes->check() )
-    {
-      priest().buffs.dissonant_echoes->expire();
-    }
+    
 
   }
 
   bool ready() override
   {
-    if ( !priest().buffs.voidform->check() && !priest().buffs.dissonant_echoes->check() )
-    {
-      return false;
-    }
+    
 
     return priest_spell_t::ready();
   }
@@ -1728,9 +1692,6 @@ void priest_t::init_spells_shadow()
   specs.void_eruption        = find_specialization_spell( "Void Eruption" );
   specs.void_eruption_damage = find_spell( 228360 );
 
-  // Legendary Effects
-  specs.cauterizing_shadows_health = find_spell( 336373 );
-  specs.painbreaker_psalm_insanity = find_spell( 336167 );
 }
 
 action_t* priest_t::create_action_shadow( util::string_view name, util::string_view options_str )
@@ -1942,10 +1903,7 @@ void priest_t::refresh_talbadars_buff( action_state_t* s )
     timespan_t min_length = std::min( { td->dots.shadow_word_pain->remains(), td->dots.vampiric_touch->remains(),
                                         td->dots.devouring_plague->remains() } );
 
-    if ( buffs.talbadars_stratagem->up() && min_length <= buffs.talbadars_stratagem->remains() )
-      return;
-
-    buffs.talbadars_stratagem->trigger( min_length );
+    
   }
 }
 

@@ -234,21 +234,14 @@ struct hand_of_guldan_t : public demonology_spell_t
 
     demonology_spell_t::execute();
 
-    if ( rng().roll( p()->conduit.borne_of_blood.percent() ) )
-      p()->buffs.demonic_core->trigger();
-
-    if ( p()->legendary.grim_inquisitors_dread_calling.ok() )
-      p()->buffs.dread_calling->increment( shards_used, p()->buffs.dread_calling->default_value );
+    
   }
 
   void consume_resource() override
   {
     demonology_spell_t::consume_resource();
 
-    // BFA - Azerite
-    if ( rng().roll( p()->azerite.demonic_meteor.spell_ref().effectN( 2 ).percent() * as<int>(last_resource_cost)) )
-      p()->resource_gain( RESOURCE_SOUL_SHARD, 1.0, p()->gains.demonic_meteor );
-
+    
     if ( last_resource_cost == 1.0 )
       p()->procs.one_shard_hog->occur();
     if ( last_resource_cost == 2.0 )
@@ -381,8 +374,7 @@ struct call_dreadstalkers_t : public demonology_spell_t
       //Despite having no cost when Demonic Calling is up, this spell will still proc effects based on shard spending (last checked 2021-03-11)
       double base_cost = demonology_spell_t::cost();
 
-      if ( p()->legendary.wilfreds_sigil_of_superior_summoning->ok() )
-        p()->cooldowns.demonic_tyrant->adjust( -base_cost * p()->legendary.wilfreds_sigil_of_superior_summoning->effectN( 2 ).time_value(), false );
+     
 
       if ( p()->buffs.nether_portal->up() )
       {
@@ -404,20 +396,6 @@ struct call_dreadstalkers_t : public demonology_spell_t
       td( target )->debuffs_from_the_shadows->trigger();
     }
 
-    //TOCHECK: Verify only the new pair of dreadstalkers gets the buff
-    if ( p()->legendary.grim_inquisitors_dread_calling.ok() )
-    {
-      for ( auto d : dogs )
-      {
-        //Only apply buff to dogs without a buff. If no stacks of the buff currently exist on the warlock, apply a buff with value of 0
-        if ( d->is_active() && !d->buffs.grim_inquisitors_dread_calling->check() )
-        {
-          d->buffs.grim_inquisitors_dread_calling->trigger( 1, p()->buffs.dread_calling->check_stack_value() );
-        }
-      }
-
-      p()->buffs.dread_calling->expire();
-    }
   }
 };
 
@@ -519,14 +497,7 @@ struct implosion_t : public demonology_spell_t
       }
     }
 
-    // BFA - Azerite
-    if ( p()->azerite.explosive_potential.ok() && imps_consumed >= 3 )
-      p()->buffs.explosive_potential->trigger();
-
-    if ( p()->legendary.implosive_potential.ok() && target_list().size() >= as<size_t>( p()->legendary.implosive_potential->effectN( 1 ).base_value() ) )
-      p()->buffs.implosive_potential->trigger( imps_consumed );
-    else if ( p()->legendary.implosive_potential.ok() )
-      p()->buffs.implosive_potential_small->trigger( imps_consumed );
+    
   }
 };
 
@@ -542,9 +513,7 @@ struct summon_demonic_tyrant_t : public demonology_spell_t
   {
     parse_options( options_str );
     harmful = may_crit = false;
-    // BFA - Essence
-    cooldown->duration *= 1.0 + azerite::vision_of_perfection_cdr( p->azerite_essence.vision_of_perfection );
-    demonic_consumption_health_percentage = p->find_spell( 267971 )->effectN( 1 ).percent();
+    
   }
 
   void execute() override
@@ -559,10 +528,7 @@ struct summon_demonic_tyrant_t : public demonology_spell_t
       p()->resource_gain( RESOURCE_SOUL_SHARD, p()->spec.summon_demonic_tyrant_2->effectN( 1 ).base_value() / 10.0,
                           p()->gains.summon_demonic_tyrant );
 
-    // BFA - Azerite
-    if ( p()->azerite.baleful_invocation.ok() )
-      p()->resource_gain( RESOURCE_SOUL_SHARD, p()->find_spell( 287060 )->effectN( 1 ).base_value() / 10.0,
-                          p()->gains.baleful_invocation );
+  
 
     demonic_consumption_added_damage = 0;
 
@@ -1108,40 +1074,7 @@ void warlock_t::create_buffs_demonology()
   buffs.nether_portal =
       make_buff( this, "nether_portal", talents.nether_portal )->set_duration( talents.nether_portal->duration() );
 
-  // Azerite
-  buffs.shadows_bite = make_buff( this, "shadows_bite", azerite.shadows_bite )
-                           ->set_duration( find_spell( 272945 )->duration() )
-                           ->set_default_value( azerite.shadows_bite.value() );
-  buffs.supreme_commander = make_buff<stat_buff_t>( this, "supreme_commander", azerite.supreme_commander )
-                                ->add_stat( STAT_INTELLECT, azerite.supreme_commander.value() )
-                                ->set_duration( find_spell( 279885 )->duration() );
-  buffs.explosive_potential = make_buff<stat_buff_t>( this, "explosive_potential", find_spell( 275398 ) )
-                                  ->add_stat( STAT_HASTE_RATING, azerite.explosive_potential.value() );
-
-  // Conduits
-  buffs.tyrants_soul = make_buff( this, "tyrants_soul", find_spell( 339784 ) )
-                           ->set_default_value( conduit.tyrants_soul.percent() );
-
-  // Legendaries
-  buffs.balespiders_burning_core =
-      make_buff( this, "balespiders_burning_core", legendary.balespiders_burning_core->effectN( 1 ).trigger() )
-          ->set_trigger_spell( legendary.balespiders_burning_core )
-          ->set_default_value( legendary.balespiders_burning_core->effectN( 1 ).trigger()->effectN( 1 ).percent() );
-
-  //TODO: SL Beta - check max stacks, refresh behavior, etc
-  buffs.implosive_potential = make_buff<buff_t>(this, "implosive_potential", find_spell(337139))
-          ->set_pct_buff_type( STAT_PCT_BUFF_HASTE )
-          ->set_default_value( legendary.implosive_potential->effectN( 2 ).percent() )
-          ->set_max_stack( 40 ); //Using the other wild imp simc max for now
-
-  //For ease of use and tracking, the lesser version will have (small) appended to a separate buff
-  buffs.implosive_potential_small = make_buff<buff_t>(this, "implosive_potential_small", find_spell(337139))
-          ->set_pct_buff_type( STAT_PCT_BUFF_HASTE )
-          ->set_default_value( legendary.implosive_potential->effectN( 3 ).percent() )
-          ->set_max_stack( 40 ); //Using the other wild imp simc max for now
-
-  buffs.dread_calling = make_buff<buff_t>( this, "dread_calling", find_spell( 342997 ) )
-                            ->set_default_value( legendary.grim_inquisitors_dread_calling->effectN( 1 ).percent() );
+  
 
   // to track pets
   buffs.wild_imps = make_buff( this, "wild_imps" )->set_max_stack( 40 );
@@ -1164,58 +1097,6 @@ void warlock_t::create_buffs_demonology()
                              ->set_refresh_behavior( buff_refresh_behavior::DURATION );
 }
 
-void warlock_t::vision_of_perfection_proc_demo()
-{
-  timespan_t summon_duration = find_spell( 265187 )->duration() * vision_of_perfection_multiplier;
-
-  warlock_pet_list.demonic_tyrants.spawn( summon_duration, 1U );
-
-  auto essence         = find_azerite_essence( "Vision of Perfection" );
-  timespan_t extension = timespan_t::from_seconds(
-      essence.spell_ref( essence.rank(), essence_type::MAJOR ).effectN( 2 ).base_value() / 1000 );
-
-  if ( azerite.baleful_invocation.ok() )
-    resource_gain(
-        RESOURCE_SOUL_SHARD,
-        std::round( find_spell( 287060 )->effectN( 1 ).base_value() / 10.0 * vision_of_perfection_multiplier ),
-        gains.baleful_invocation );
-  buffs.demonic_power->trigger( 1, buffs.demonic_power->DEFAULT_VALUE(), -1.0, summon_duration );
-
-  // TOCHECK: Azerite traits, does proc tyrant extend summoned tyrant and vice versa?
-  for ( auto& pet : pet_list )
-  {
-    auto lock_pet = dynamic_cast<warlock_pet_t*>( pet );
-
-    if ( lock_pet == nullptr )
-      continue;
-    if ( lock_pet->is_sleeping() )
-      continue;
-
-    if ( lock_pet->pet_type == PET_DEMONIC_TYRANT )
-      continue;
-
-    if ( lock_pet->expiration )
-    {
-      timespan_t new_time                   = lock_pet->expiration->time + extension;
-      lock_pet->expiration->reschedule_time = new_time;
-    }
-  }
-
-  buffs.tyrant->set_duration( std::max( buffs.tyrant->remains(), summon_duration ) );
-  buffs.tyrant->trigger( 1, buffs.tyrant->DEFAULT_VALUE(), -1.0, summon_duration );
-  if ( buffs.dreadstalkers->check() )
-  {
-    buffs.dreadstalkers->extend_duration( this, extension );
-  }
-  if ( buffs.grimoire_felguard->check() )
-  {
-    buffs.grimoire_felguard->extend_duration( this, extension );
-  }
-  if ( buffs.vilefiend->check() )
-  {
-    buffs.vilefiend->extend_duration( this, extension );
-  }
-}
 
 void warlock_t::init_spells_demonology()
 {
@@ -1243,25 +1124,7 @@ void warlock_t::init_spells_demonology()
   talents.demonic_consumption = find_talent_spell( "Demonic Consumption" );
   talents.nether_portal       = find_talent_spell( "Nether Portal" );
 
-  // BFA - Azerite
-  azerite.demonic_meteor      = find_azerite_spell( "Demonic Meteor" );
-  azerite.shadows_bite        = find_azerite_spell( "Shadow's Bite" );
-  azerite.supreme_commander   = find_azerite_spell( "Supreme Commander" );
-  azerite.umbral_blaze        = find_azerite_spell( "Umbral Blaze" );
-  azerite.explosive_potential = find_azerite_spell( "Explosive Potential" );
-  azerite.baleful_invocation  = find_azerite_spell( "Baleful Invocation" );
-
-  // Legendaries
-  legendary.balespiders_burning_core       = find_runeforge_legendary( "Balespider's Burning Core" );
-  legendary.forces_of_the_horned_nightmare = find_runeforge_legendary( "Forces of the Horned Nightmare" );
-  legendary.grim_inquisitors_dread_calling = find_runeforge_legendary( "Grim Inquisitor's Dread Calling" );
-  legendary.implosive_potential            = find_runeforge_legendary( "Implosive Potential" );
-
-  // Conduits
-  conduit.borne_of_blood       = find_conduit_spell( "Borne of Blood" );
-  conduit.carnivorous_stalkers = find_conduit_spell( "Carnivorous Stalkers" );
-  conduit.fel_commando         = find_conduit_spell( "Fel Commando" );
-  conduit.tyrants_soul         = find_conduit_spell( "Tyrant's Soul" );
+  
 
   active.summon_random_demon = new actions_demonology::summon_random_demon_t( this, "" );
 

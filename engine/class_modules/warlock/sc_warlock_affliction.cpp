@@ -154,7 +154,6 @@ struct agony_t : public affliction_spell_t
     pandemic_invocation_usable = false;  // BFA - Azerite
 
     dot_max_stack = as<int>( data().max_stacks() + p->spec.agony_2->effectN( 1 ).base_value() );
-    dot_duration += p->conduit.rolling_agony.time_value();
 
     base_td = 1.0;
   }
@@ -179,19 +178,9 @@ struct agony_t : public affliction_spell_t
 
   void execute() override
   {
-    // BFA - Azerite
-    // Do checks for Pandemic Invocation before parent execute() is called so we get the correct DoT states.
-    if ( p()->azerite.pandemic_invocation.ok() && td( target )->dots_agony->is_ticking() &&
-         td( target )->dots_agony->remains() <= p()->azerite.pandemic_invocation.spell_ref().effectN( 2 ).time_value() )
-      pandemic_invocation_usable = true;
-
+   
     affliction_spell_t::execute();
 
-    if ( pandemic_invocation_usable )
-    {
-      p()->active.pandemic_invocation->schedule_execute();
-      pandemic_invocation_usable = false;
-    }
 
     //There is TECHNICALLY a prepatch bug on PTR (as of 9/23) where having both the talent and the azerite starts at 3 stacks
     //Making a note of it here in this comment but not going to implement it at this time
@@ -202,21 +191,13 @@ struct agony_t : public affliction_spell_t
         ->dots_agony->increment( (int)p()->talents.writhe_in_agony->effectN( 3 ).base_value() -
           td( execute_state->target )->dots_agony->current_stack() );
     }
-    else if ( p()->azerite.sudden_onset.ok() && td( execute_state->target )->dots_agony->current_stack() <
-                                               (int)p()->azerite.sudden_onset.spell_ref().effectN( 2 ).base_value() )
-    {
-      td( execute_state->target )
-          ->dots_agony->increment( (int)p()->azerite.sudden_onset.spell_ref().effectN( 2 ).base_value() -
-                                   td( execute_state->target )->dots_agony->current_stack() );
-    }
+    
   }
 
   double bonus_ta( const action_state_t* s ) const override
   {
     double ta = affliction_spell_t::bonus_ta( s );
-    // BFA - Azerite
-    // TOCHECK: How does Sudden Onset behave with Writhe in Agony's increased stack cap?
-    ta += p()->azerite.sudden_onset.value();
+    
     return ta;
   }
 
@@ -239,26 +220,12 @@ struct agony_t : public affliction_spell_t
       increment_max *= 1.0 + p()->talents.creeping_death->effectN( 1 ).percent();
     }
 
-    if ( p()->legendary.perpetual_agony_of_azjaqir->ok() )
-      increment_max *= 1.0 + p()->legendary.perpetual_agony_of_azjaqir->effectN( 1 ).percent();
+    
 
     p()->agony_accumulator += rng().range( 0.0, increment_max );
 
     if ( p()->agony_accumulator >= 1 )
     {
-      // BFA - Azerite
-      if ( p()->azerite.wracking_brilliance.ok() )
-      {
-        if ( p()->wracking_brilliance )
-        {
-          p()->wracking_brilliance = false;
-          p()->buffs.wracking_brilliance->trigger();
-        }
-        else
-        {
-          p()->wracking_brilliance = true;
-        }
-      }
 
       p()->resource_gain( RESOURCE_SOUL_SHARD, 1.0, p()->gains.agony );
       p()->agony_accumulator -= 1.0;
@@ -267,11 +234,6 @@ struct agony_t : public affliction_spell_t
     if ( result_is_hit( d->state->result ) && p()->talents.inevitable_demise->ok() && !p()->buffs.drain_life->check() )
     {
       p()->buffs.inevitable_demise->trigger();
-    }
-
-    if ( result_is_hit( d->state->result ) && p()->azerite.inevitable_demise.ok() && !p()->buffs.drain_life->check() )
-    {
-      p()->buffs.id_azerite->trigger();
     }
 
     p()->malignancy_reduction_helper();
@@ -355,31 +317,17 @@ struct corruption_t : public affliction_spell_t
 
   void execute() override
   {
-    // BFA - Azerite
-    // Do checks for Pandemic Invocation before parent execute() is called so we get the correct DoT states.
-    if ( p()->azerite.pandemic_invocation.ok() && td( target )->dots_corruption->is_ticking() &&
-         td( target )->dots_corruption->remains() <=
-             p()->azerite.pandemic_invocation.spell_ref().effectN( 2 ).time_value() )
-      pandemic_invocation_usable = true;
+
 
     affliction_spell_t::execute();
-
-    if ( pandemic_invocation_usable )
-    {
-      p()->active.pandemic_invocation->schedule_execute();
-      pandemic_invocation_usable = false;
-    }
-
-
+   
   }
 
   double composite_ta_multiplier(const action_state_t* s) const override
   {
     double m = affliction_spell_t::composite_ta_multiplier( s );
 
-    // SL - Legendary
-    if ( p()->legendary.sacrolashs_dark_strike->ok() )
-      m *= 1.0 + p()->legendary.sacrolashs_dark_strike->effectN( 1 ).percent();
+    
 
     return m;
   }
@@ -404,18 +352,11 @@ struct unstable_affliction_t : public affliction_spell_t
     {
       td( p()->ua_target )->dots_unstable_affliction->cancel();
     }
-    else if ( p()->ua_target && td( p()->ua_target )->dots_unstable_affliction->is_ticking() &&
-      p()->azerite.cascading_calamity.ok() )
-    {
-      p()->buffs.cascading_calamity->trigger();
-    }
 
     p()->ua_target = target;
 
     affliction_spell_t::execute();
 
-    if ( p()->azerite.dreadful_calling.ok() )
-      p()->cooldowns.darkglare->adjust( (-1 * p()->azerite.dreadful_calling.spell_ref().effectN( 1 ).time_value() ) );
   }
 
   void last_tick( dot_t* d) override
@@ -435,7 +376,6 @@ struct unstable_affliction_t : public affliction_spell_t
   double bonus_ta( const action_state_t* s ) const override
   {
     double ta = affliction_spell_t::bonus_ta( s );
-    ta += p()->azerite.dreadful_calling.value( 2 );
     return ta;
   }
 };
@@ -450,8 +390,6 @@ struct summon_darkglare_t : public affliction_spell_t
 
     cooldown->duration += timespan_t::from_millis( p->talents.dark_caller->effectN( 1 ).base_value() );
 
-    //PTR for prepatch presumably does additive CDR, then multiplicative
-    cooldown->duration *= 1.0 + azerite::vision_of_perfection_cdr( p->azerite_essence.vision_of_perfection );
   }
 
   void execute() override
@@ -646,21 +584,13 @@ struct malefic_rapture_t : public affliction_spell_t
         double m = affliction_spell_t::composite_da_multiplier( s );
         m *= get_dots_ticking( s->target );
 
-        if ( td( s->target )->dots_unstable_affliction->is_ticking() )
-        {
-          m *= 1 + p()->conduit.focused_malignancy.percent();
-        }
 
         return m;
       }
 
       void execute() override
       {
-        if ( p()->legendary.malefic_wrath->ok() )
-        {
-          p()->buffs.malefic_wrath->trigger();
-          p()->procs.malefic_wrath->occur();
-        }
+        
 
         int d = as<int>( get_dots_ticking( target ) );
         if ( d > 0 )
@@ -777,20 +707,9 @@ struct siphon_life_t : public affliction_spell_t
 
   void execute() override
   {
-    // BFA - Azerite
-    // Do checks for Pandemic Invocation before parent execute() is called so we get the correct DoT states.
-    if ( p()->azerite.pandemic_invocation.ok() && td( target )->dots_siphon_life->is_ticking() &&
-         td( target )->dots_siphon_life->remains() <=
-             p()->azerite.pandemic_invocation.spell_ref().effectN( 2 ).time_value() )
-      pandemic_invocation_usable = true;
-
+    
     affliction_spell_t::execute();
 
-    if ( pandemic_invocation_usable )
-    {
-      p()->active.pandemic_invocation->schedule_execute();
-      pandemic_invocation_usable = false;
-    }
   }
 };
 
@@ -852,15 +771,12 @@ struct pandemic_invocation_t : public affliction_spell_t
   {
     background = true;
 
-    base_dd_min = base_dd_max = p->azerite.pandemic_invocation.value();
   }
 
   void execute() override
   {
     affliction_spell_t::execute();
 
-    if ( p()->rng().roll( p()->azerite.pandemic_invocation.spell_ref().effectN( 3 ).percent() / 100.0 ) )
-      p()->resource_gain( RESOURCE_SOUL_SHARD, 1.0, p()->gains.pandemic_invocation );
   }
 };
 
@@ -939,35 +855,7 @@ void warlock_t::create_buffs_affliction()
   buffs.inevitable_demise = make_buff( this, "inevitable_demise", talents.inevitable_demise )
                                 ->set_max_stack( find_spell( 334320 )->max_stacks() )
                                 ->set_default_value( talents.inevitable_demise->effectN( 1 ).percent() );
-  // BFA - Azerite
-  buffs.id_azerite = make_buff(this, "inevitable_demise_az", azerite.inevitable_demise)
-                         ->set_max_stack(find_spell(273525)->max_stacks())
-                         // Inevitable Demise has a built in 25% reduction to the value of ranks 2 and 3. This is applied as a flat multiplier to the total value.
-                         ->set_default_value(azerite.inevitable_demise.value() * ((1.0 + 0.75 * (azerite.inevitable_demise.n_items() - 1)) / azerite.inevitable_demise.n_items()));
-
-  buffs.cascading_calamity = make_buff<stat_buff_t>( this, "cascading_calamity", azerite.cascading_calamity )
-                                 ->add_stat( STAT_HASTE_RATING, azerite.cascading_calamity.value() )
-                                 ->set_duration( find_spell( 275378 )->duration() )
-                                 ->set_refresh_behavior( buff_refresh_behavior::DURATION );
-  buffs.wracking_brilliance = make_buff<stat_buff_t>( this, "wracking_brilliance", azerite.wracking_brilliance )
-                                  ->add_stat( STAT_INTELLECT, azerite.wracking_brilliance.value() )
-                                  ->set_duration( find_spell( 272893 )->duration() )
-                                  ->set_refresh_behavior( buff_refresh_behavior::DURATION );
-  buffs.malefic_wrath = make_buff( this, "malefic_wrath", find_spell( 337125 ) )->set_default_value_from_effect( 1 );
-}
-
-void warlock_t::vision_of_perfection_proc_aff()
-{
-  timespan_t summon_duration = spec.summon_darkglare->duration() * vision_of_perfection_multiplier;
-
-  warlock_pet_list.vop_darkglares.spawn( summon_duration, 1U );
-
-  auto vop = find_azerite_essence( "Vision of Perfection" );
-
-  timespan_t darkglare_extension =
-      timespan_t::from_seconds( vop.spell_ref( vop.rank(), essence_type::MAJOR ).effectN( 3 ).base_value() / 1000 );
-
-  darkglare_extension_helper( this, darkglare_extension );
+  
 }
 
 void warlock_t::init_spells_affliction()
@@ -1003,27 +891,6 @@ void warlock_t::init_spells_affliction()
   talents.creeping_death      = find_talent_spell( "Creeping Death" );
   talents.dark_soul_misery    = find_talent_spell( "Dark Soul: Misery" );
 
-  // BFA - Azerite
-  azerite.cascading_calamity  = find_azerite_spell( "Cascading Calamity" );
-  azerite.dreadful_calling    = find_azerite_spell( "Dreadful Calling" );
-  azerite.inevitable_demise   = find_azerite_spell( "Inevitable Demise" );
-  azerite.sudden_onset        = find_azerite_spell( "Sudden Onset" );
-  azerite.wracking_brilliance = find_azerite_spell( "Wracking Brilliance" );
-  azerite.pandemic_invocation = find_azerite_spell( "Pandemic Invocation" );
-
-  // Legendaries
-  legendary.malefic_wrath              = find_runeforge_legendary( "Malefic Wrath" );
-  legendary.perpetual_agony_of_azjaqir = find_runeforge_legendary( "Perpetual Agony of Azj'Aqir" );
-  //Wrath of Consumption and Sacrolash's Dark Strike are implemented in main module
-
-  // Conduits
-  conduit.cold_embrace       = find_conduit_spell( "Cold Embrace" );
-  conduit.corrupting_leer    = find_conduit_spell( "Corrupting Leer" );
-  conduit.focused_malignancy = find_conduit_spell( "Focused Malignancy" );
-  conduit.rolling_agony      = find_conduit_spell( "Rolling Agony" );
-
-  // Actives
-  active.pandemic_invocation = new pandemic_invocation_t( this );
 }
 
 void warlock_t::init_gains_affliction()
@@ -1032,8 +899,6 @@ void warlock_t::init_gains_affliction()
   gains.seed_of_corruption         = get_gain( "seed_of_corruption" );
   gains.unstable_affliction_refund = get_gain( "unstable_affliction_refund" );
   gains.drain_soul                 = get_gain( "drain_soul" );
-  // BFA - Azerite
-  gains.pandemic_invocation = get_gain( "pandemic_invocation" );
 }
 
 void warlock_t::init_rng_affliction()
@@ -1053,7 +918,6 @@ void warlock_t::create_apl_affliction()
   action_priority_list_t* prep  = get_action_priority_list( "darkglare_prep" );
   action_priority_list_t* se    = get_action_priority_list( "se" );
   action_priority_list_t* aoe   = get_action_priority_list( "aoe" );
-  action_priority_list_t* cov   = get_action_priority_list( "covenant" );
   action_priority_list_t* item  = get_action_priority_list( "item" );
 
   def->add_action( "call_action_list,name=aoe,if=active_enemies>3" );
@@ -1152,10 +1016,6 @@ void warlock_t::create_apl_affliction()
   aoe->add_action( "drain_soul,interrupt=1" );
   aoe->add_action( "shadow_bolt" );
 
-  cov->add_action( "impending_catastrophe,if=cooldown.summon_darkglare.remains<10|cooldown.summon_darkglare.remains>50" );
-  cov->add_action( "decimating_bolt,if=cooldown.summon_darkglare.remains>5&(debuff.haunt.remains>4|!talent.haunt.enabled)" );
-  cov->add_action( "soul_rot,if=cooldown.summon_darkglare.remains<5|cooldown.summon_darkglare.remains>50|cooldown.summon_darkglare.remains>25&conduit.corrupting_leer.enabled" );
-  cov->add_action( "scouring_tithe" );
 
   item->add_action( "use_items" );
 }
