@@ -1286,59 +1286,12 @@ void print_html_gear( report::sc_html_stream& os, const player_t& p )
       item_sim_desc += " }";
     }
 
-    if ( !item.parsed.azerite_ids.empty() )
-    {
-      std::stringstream s;
-      for ( size_t i = 0; i < item.parsed.azerite_ids.size(); ++i )
-      {
-        const auto& power = item.player -> dbc->azerite_power( item.parsed.azerite_ids[ i ] );
-        if ( power.id == 0 || ! item.player -> azerite -> is_enabled( power.id ) )
-        {
-          continue;
-        }
-
-        const auto spell = item.player -> find_spell( power.spell_id );
-
-        s << report_decorators::decorated_spell_data_item(*item.sim, spell, item);
-
-        if ( i < item.parsed.azerite_ids.size() - 1 )
-        {
-          s << ", ";
-        }
-      }
-
-      if ( ! s.str().empty() )
-      {
-        item_sim_desc += "<br/>";
-        item_sim_desc += "azerite powers: { ";
-        item_sim_desc += s.str();
-        item_sim_desc += " }";
-      }
-    }
 
     if ( item.parsed.data.id == 158075 )
     {
       std::stringstream s;
       s << "level: " << item.parsed.azerite_level;
 
-      if ( item.player->azerite_essence )
-      {
-        std::stringstream s2;
-        auto spell_list = item.player->azerite_essence->enabled_essences();
-
-        for ( size_t i = 0; i < spell_list.size(); ++i )
-        {
-          const auto spell = item.player->find_spell( spell_list[ i ] );
-
-          s2 << report_decorators::decorated_spell_data_item(*item.sim, spell, item);
-
-          if ( i < spell_list.size() - 1 )
-            s2 << ", ";
-        }
-
-        if ( !s2.str().empty() )
-          s << ", azerite essences: { " << s2.str() << " }";
-      }
 
       if ( !s.str().empty() )
       {
@@ -3552,11 +3505,6 @@ void print_html_player_description( report::sc_html_stream& os, const player_t& 
              util::encode_html( p.position_str ).c_str(),
              util::profile_source_string( p.profile_source_ ) );
 
-  if ( p.covenant )
-  {
-    os.format( "<li><b>Covenant:</b> {}</li>\n",
-               util::inverse_tokenize( util::covenant_type_string( p.covenant->type() ) ) );
-  }
 
   os.format("</ul>\n");
 
@@ -3875,27 +3823,7 @@ void print_html_player_results_spec_gear( report::sc_html_stream& os, const play
       os << "</tr>\n";
     }
 
-    // Essence
-    if ( p.azerite_essence )
-    {
-      p.azerite_essence->generate_report( os );
-    }
-
-    // Azerite
-    if ( p.azerite )
-    {
-      p.azerite->generate_report( os );
-    }
-
-    // Covenant, Soulbinds, and Conduits
-    if ( p.covenant )
-    {
-      p.covenant->generate_report( os );
-    }
-
-    // Runeforge Legendaries
-    runeforge::generate_report( p, os );
-
+ 
     // Professions
     if ( !p.professions_str.empty() )
     {
