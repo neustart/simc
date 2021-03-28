@@ -33,9 +33,6 @@ struct action_callback_t;
 struct action_variable_t;
 struct actor_target_data_t;
 struct attack_t;
-class azerite_essence_t;
-class azerite_power_t;
-class conduit_data_t;
 class dbc_t;
 struct benefit_t;
 struct item_t;
@@ -74,9 +71,7 @@ namespace report {
 namespace js {
     struct JsonOutput;
 }
-namespace covenant {
-  class covenant_state_t;
-}
+
 
 /* Player Report Extension
  * Allows class modules to write extension to the report sections based on the dynamic class of the player.
@@ -359,7 +354,6 @@ struct player_t : public actor_t
   bool matching_gear;
   bool karazhan_trinkets_paired;
   std::unique_ptr<cooldown_t> item_cooldown;
-  cooldown_t* legendary_tank_cloak_cd; // non-Null if item available
 
 
   // Warlord's Unseeing Eye (6.2 Trinket)
@@ -422,20 +416,6 @@ struct player_t : public actor_t
     buff_t* amplification;
     buff_t* amplification_2;
 
-    // Legendary meta stuff
-    buff_t* courageous_primal_diamond_lucidity;
-    buff_t* tempus_repit;
-    buff_t* fortitude;
-
-    buff_t* archmages_greater_incandescence_str;
-    buff_t* archmages_greater_incandescence_agi;
-    buff_t* archmages_greater_incandescence_int;
-    buff_t* archmages_incandescence_str;
-    buff_t* archmages_incandescence_agi;
-    buff_t* archmages_incandescence_int;
-    buff_t* legendary_aoe_ring; // Legendary ring buff.
-    buff_t* legendary_tank_buff;
-
     // 7.0 trinket proxy buffs
     buff_t* incensed;
     buff_t* taste_of_mana; // Gnawed Thumb Ring buff
@@ -492,22 +472,6 @@ struct player_t : public actor_t
     buff_t* focus_magic; // Mage talent
     buff_t* power_infusion; // Priest spell
 
-    // 9.0 class covenant buffs
-    buff_t* benevolent_faerie; // Night Fae Priest spell
-    buff_t* blessing_of_summer; // Night Fae Paladin spell
-    buff_t* blessing_of_autumn; // Night Fae Paladin spell
-    buff_t* blessing_of_winter; // Night Fae Paladin spell
-    buff_t* blessing_of_spring; // Night Fae Paladin spell
-    buff_t* conquerors_banner; // Necrolord Warrior spell
-
-    // 9.0 Soulbinds
-    buff_t* wild_hunt_tactics;  // night_fae/korayn - dummy buff used to quickly check if soulbind is enabled
-    buff_t* volatile_solvent_damage; // necrolord/marileth - elemental (magic) and giant (physical) % damage done buffs
-
-    // 9.0 Runecarves
-    buff_t* norgannons_sagacity_stacks;  // stacks on every cast
-    buff_t* norgannons_sagacity;         // consume stacks to allow casting while moving
-    buff_t* echo_of_eonar;               // passive self buff
   } buffs;
 
   struct debuffs_t
@@ -736,9 +700,6 @@ public:
 
   pet_t* cast_pet();
   const pet_t* cast_pet() const;
-
-  const spell_data_t* find_soulbind_spell( util::string_view name ) const;
-  const spell_data_t* find_covenant_spell( util::string_view name ) const;
 
   const spell_data_t* find_racial_spell( util::string_view name, race_e r = RACE_NONE ) const;
   const spell_data_t* find_class_spell( util::string_view name, specialization_e s = SPEC_NONE ) const;

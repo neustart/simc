@@ -114,7 +114,6 @@ public:
     propagate_const<buff_t*> inner_focus;
     propagate_const<buff_t*> power_of_the_dark_side;
     propagate_const<buff_t*> sins_of_the_many;
-    propagate_const<buff_t*> shadow_covenant;
     propagate_const<buff_t*> spirit_shell;
 
     // Holy
@@ -135,18 +134,6 @@ public:
     propagate_const<buff_t*> ancient_madness;
     propagate_const<buff_t*> dark_thought;
 
-    // Runeforge Legendary
-    propagate_const<buff_t*> the_penitent_one;
-    propagate_const<buff_t*> sephuzs_proclamation;
-    propagate_const<buff_t*> talbadars_stratagem;
-
-    // Conduits
-    propagate_const<buff_t*> mind_devourer;
-    propagate_const<buff_t*> dissonant_echoes;
-
-    // Covenants
-    propagate_const<buff_t*> fae_guardians;
-    propagate_const<buff_t*> boon_of_the_ascended;
   } buffs;
 
   // Talents
@@ -170,7 +157,6 @@ public:
     const spell_data_t* power_word_solace;
     // T40
     const spell_data_t* sins_of_the_many;  // assumes 0 atonement targets
-    const spell_data_t* shadow_covenant;   // healing not fully implemented, only dmg/healing buff
     // T45
     const spell_data_t* purge_the_wicked;
     // T50
@@ -247,9 +233,6 @@ public:
     const spell_data_t* void_eruption;
     const spell_data_t* void_eruption_damage;
 
-    // Legendary Effects
-    const spell_data_t* cauterizing_shadows_health;
-    const spell_data_t* painbreaker_psalm_insanity;
   } specs;
 
   // DoT Spells
@@ -516,8 +499,6 @@ struct priest_action_t : public Base
     bool shadowform_ta;
     bool twist_of_fate_da;
     bool twist_of_fate_ta;
-    bool shadow_covenant_da;
-    bool shadow_covenant_ta;
     bool schism;
   } affected_by;
 
@@ -564,8 +545,6 @@ public:
                     { priest().buffs.shadowform->data().effectN( 4 ), affected_by.shadowform_ta },
                     { priest().buffs.twist_of_fate->data().effectN( 1 ), affected_by.twist_of_fate_da },
                     { priest().buffs.twist_of_fate->data().effectN( 2 ), affected_by.twist_of_fate_ta },
-                    { priest().buffs.shadow_covenant->data().effectN( 2 ), affected_by.shadow_covenant_da },
-                    { priest().buffs.shadow_covenant->data().effectN( 3 ), affected_by.shadow_covenant_ta },
                     { priest().talents.schism->effectN( 2 ), affected_by.schism } };
 
     for ( const auto& a : affects )
@@ -641,10 +620,7 @@ public:
     {
       m *= 1.0 + priest().buffs.twist_of_fate->data().effectN( 1 ).percent();
     }
-    if ( affected_by.shadow_covenant_da && priest().buffs.shadow_covenant->check() )
-    {
-      m *= 1 + priest().buffs.shadow_covenant->data().effectN( 2 ).percent();
-    }
+    
     return m;
   }
 
@@ -663,10 +639,6 @@ public:
     if ( affected_by.twist_of_fate_ta && priest().buffs.twist_of_fate->check() )
     {
       m *= 1.0 + priest().buffs.twist_of_fate->data().effectN( 2 ).percent();
-    }
-    if ( affected_by.shadow_covenant_ta && priest().buffs.shadow_covenant->check() )
-    {
-      m *= 1 + priest().buffs.shadow_covenant->data().effectN( 3 ).percent();
     }
     return m;
   }
@@ -772,13 +744,6 @@ struct priest_spell_t : public priest_action_t<spell_t>
       }
     }
 
-    if ( priest().specialization() == PRIEST_DISCIPLINE && priest().talents.shadow_covenant->ok() )
-    {
-      if ( school == SCHOOL_HOLY && priest().buffs.shadow_covenant->check() )
-      {
-        return false;
-      }
-    }
 
     return action_t::ready();
   }
