@@ -47,10 +47,6 @@ public:
 
     spell_power_mod.direct *= 1.0 + p.talents.fortress_of_the_mind->effectN( 4 ).percent();
 
-    if ( priest().conduits.mind_devourer->ok() )
-    {
-      base_dd_multiplier *= ( 1.0 + priest().conduits.mind_devourer.percent() );
-    }
 
     cooldown->hasted     = true;
     usable_while_casting = use_while_casting = only_cwc;
@@ -87,22 +83,10 @@ public:
     }
   }
 
-  bool talbadars_stratagem_active() const
-  {
-    if ( !priest().legendary.talbadars_stratagem->ok() )
-      return false;
-
-    return priest().buffs.talbadars_stratagem->check();
-  }
-
   double composite_da_multiplier( const action_state_t* s ) const override
   {
     double m = priest_spell_t::composite_da_multiplier( s );
 
-    if ( talbadars_stratagem_active() )
-    {
-      m *= 1 + priest().legendary.talbadars_stratagem->effectN( 1 ).percent();
-    }
 
     return m;
   }
@@ -110,11 +94,6 @@ public:
   void impact( action_state_t* s ) override
   {
     priest_spell_t::impact( s );
-
-    if ( priest().legendary.shadowflame_prism->ok() )
-    {
-      priest().trigger_shadowflame_prism( s->target );
-    }
 
     if ( priest().buffs.mind_devourer->trigger() )
     {
@@ -232,19 +211,6 @@ struct mind_flay_t final : public priest_spell_t
     spell_power_mod.tick *= 1.0 + p.talents.fortress_of_the_mind->effectN( 3 ).percent();
   }
 
-  void trigger_mind_flay_dissonant_echoes()
-  {
-    if ( !priest().conduits.dissonant_echoes->ok() || priest().buffs.voidform->check() )
-    {
-      return;
-    }
-
-    if ( rng().roll( priest().conduits.dissonant_echoes.percent() ) )
-    {
-      priest().buffs.dissonant_echoes->trigger();
-      priest().procs.dissonant_echoes->occur();
-    }
-  }
 
   void tick( dot_t* d ) override
   {
@@ -252,7 +218,6 @@ struct mind_flay_t final : public priest_spell_t
 
     priest().trigger_eternal_call_to_the_void( d->state );
     trigger_dark_thoughts( d->target, priest().procs.dark_thoughts_flay, d->state );
-    trigger_mind_flay_dissonant_echoes();
   }
 
   bool ready() override
@@ -270,42 +235,6 @@ struct mind_flay_t final : public priest_spell_t
 // ==========================================================================
 // Shadow Word: Death
 // ==========================================================================
-struct painbreaker_psalm_t final : public priest_spell_t
-{
-  timespan_t consume_time;
-
-  painbreaker_psalm_t( priest_t& p )
-    : priest_spell_t( "painbreaker_psalm", p, p.legendary.painbreaker_psalm ),
-      consume_time( timespan_t::from_seconds( data().effectN( 1 ).base_value() ) )
-  {
-    background = true;
-
-    // TODO: check if this double dips from any multipliers or takes 100% exactly the calculated dot values.
-    // also check that the STATE_NO_MULTIPLIER does exactly what we expect.
-    snapshot_flags &= ~STATE_NO_MULTIPLIER;
-  }
-
-  void impact( action_state_t* s ) override
-  {
-    priest_td_t& td = get_td( s->target );
-    dot_t* swp      = td.dots.shadow_word_pain;
-    dot_t* vt       = td.dots.vampiric_touch;
-
-    auto swp_damage = priest().tick_damage_over_time( consume_time, td.dots.shadow_word_pain );
-    auto vt_damage  = priest().tick_damage_over_time( consume_time, td.dots.vampiric_touch );
-    base_dd_min = base_dd_max = swp_damage + vt_damage;
-
-    sim->print_debug( "{} {} calculated dot damage sw:p={} vt={} total={}", *player, *this, swp_damage, vt_damage,
-                      swp_damage + vt_damage );
-
-    priest_spell_t::impact( s );
-
-    swp->adjust_duration( -consume_time );
-    vt->adjust_duration( -consume_time );
-
-    priest().refresh_talbadars_buff( s );
-  }
-};
 
 struct shadow_word_death_t final : public priest_spell_t
 {
@@ -330,16 +259,6 @@ struct shadow_word_death_t final : public priest_spell_t
       cooldown->duration += rank2->effectN( 1 ).time_value();
     }
 
-    if ( priest().legendary.painbreaker_psalm->ok() )
-    {
-      impact_action = new painbreaker_psalm_t( p );
-      add_child( impact_action );
-    }
-
-    if ( priest().legendary.kiss_of_death->ok() )
-    {
-      cooldown->duration += priest().legendary.kiss_of_death->effectN( 1 ).time_value();
-    }
 
     cooldown->hasted = true;
   }
@@ -365,30 +284,11 @@ struct shadow_word_death_t final : public priest_spell_t
   {
     priest_spell_t::impact( s );
 
-    if ( priest().legendary.shadowflame_prism->ok() )
-    {
-      priest().trigger_shadowflame_prism( s->target );
-    }
+    
 
     if ( result_is_hit( s->result ) )
     {
-      if ( priest().legendary.painbreaker_psalm->ok() )
-      {
-        int dots = 0;
-
-        if ( const priest_td_t* td = priest().find_target_data( target ) )
-        {
-          bool swp_ticking = td->dots.shadow_word_pain->is_ticking();
-          bool vt_ticking  = td->dots.vampiric_touch->is_ticking();
-
-          dots = swp_ticking + vt_ticking;
-        }
-
-        double insanity_gain = dots * insanity_per_dot;
-
-        priest().generate_insanity( insanity_gain, priest().gains.painbreaker_psalm, s->action );
-      }
-
+      
       double save_health_percentage = s->target->health_percentage();
 
       // TODO: Add in a custom buff that checks after 1 second to see if the target SWD was cast on is now dead.
@@ -505,13 +405,6 @@ struct silence_t final : public priest_spell_t
   {
     priest_spell_t::impact( state );
 
-    if ( target->type == ENEMY_ADD || target->level() < sim->max_player_level + 3 )
-    {
-      if ( priest().legendary.sephuzs_proclamation->ok() && priest().buffs.sephuzs_proclamation )
-      {
-        priest().buffs.sephuzs_proclamation->trigger();
-      }
-    }
   }
 
   bool target_ready( player_t* candidate_target ) override
@@ -588,10 +481,7 @@ struct shadowy_apparition_damage_t final : public priest_spell_t
 
     base_dd_multiplier *= 1 + priest().talents.auspicious_spirits->effectN( 1 ).percent();
 
-    if ( priest().conduits.haunting_apparitions->ok() )
-    {
-      base_dd_multiplier *= ( 1.0 + priest().conduits.haunting_apparitions.percent() );
-    }
+    
   }
 
   void impact( action_state_t* s ) override
@@ -678,10 +568,7 @@ struct shadow_word_pain_t final : public priest_spell_t
   {
     // BUG: https://github.com/SimCMinMax/WoW-BugTracker/issues/789
     // You only get the heal when the DoT expires naturally, not when a mob dies or you refresh it
-    if ( priest().legendary.cauterizing_shadows->ok() )
-    {
-      trigger_heal();
-    }
+    
 
     priest_spell_t::last_tick( d );
   }
@@ -1140,10 +1027,6 @@ struct void_bolt_t final : public priest_spell_t
       void_bolt_extension = new void_bolt_extension_t( p, rank2 );
     }
 
-    if ( priest().conduits.dissonant_echoes->ok() )
-    {
-      base_dd_multiplier *= ( 1.0 + priest().conduits.dissonant_echoes->effectN( 2 ).percent() );
-    }
   }
 
   void execute() override
@@ -1155,16 +1038,6 @@ struct void_bolt_t final : public priest_spell_t
       priest().buffs.dissonant_echoes->expire();
     }
 
-    // BUG: https://github.com/SimCMinMax/WoW-BugTracker/issues/678
-    // Dissonant Echoes proc is on the ghost impact, not on execute
-    if ( !priest().bugs && priest().conduits.dissonant_echoes->ok() && priest().buffs.voidform->check() )
-    {
-      if ( rng().roll( priest().conduits.dissonant_echoes.percent() ) )
-      {
-        priest().cooldowns.void_bolt->reset( true );
-        priest().procs.dissonant_echoes->occur();
-      }
-    }
   }
 
   bool ready() override
@@ -1189,17 +1062,7 @@ struct void_bolt_t final : public priest_spell_t
       void_bolt_extension->schedule_execute();
     }
 
-    // BUG: https://github.com/SimCMinMax/WoW-BugTracker/issues/678
-    // Dissonant Echoes proc is on the ghost impact, not on execute
-    if ( priest().bugs && priest().conduits.dissonant_echoes->ok() && priest().buffs.voidform->check() )
-    {
-      if ( rng().roll( priest().conduits.dissonant_echoes.percent() ) )
-      {
-        priest().cooldowns.void_bolt->reset( true );
-        priest().procs.dissonant_echoes->occur();
-      }
-    }
-
+    
     if ( priest().talents.hungering_void->ok() )
     {
       priest_td_t& td = get_td( s->target );
@@ -1376,17 +1239,6 @@ struct psychic_horror_t final : public priest_spell_t
   }
 };
 
-// ==========================================================================
-// Eternal Call to the Void (Shadowlands Legendary)
-// ==========================================================================
-struct eternal_call_to_the_void_t final : public priest_spell_t
-{
-  eternal_call_to_the_void_t( priest_t& p )
-    : priest_spell_t( "eternal_call_to_the_void", p, p.find_spell( p.legendary.eternal_call_to_the_void->id() ) )
-  {
-    background = true;
-  }
-};
 
 // ==========================================================================
 // Void Torrent
@@ -1823,22 +1675,9 @@ void priest_t::create_buffs_shadow()
                                            talents.unfurling_darkness->effectN( 1 ).trigger()->effectN( 2 ).trigger() );
   buffs.void_torrent          = make_buff( this, "void_torrent", talents.void_torrent );
 
-  // Conduits (Shadowlands)
-  buffs.mind_devourer = make_buff( this, "mind_devourer", find_spell( 338333 ) )
-                            ->set_trigger_spell( conduits.mind_devourer )
-                            ->set_chance( conduits.mind_devourer->effectN( 2 ).percent() );
 
-  buffs.dissonant_echoes = make_buff( this, "dissonant_echoes", find_spell( 343144 ) );
-
-  buffs.talbadars_stratagem = make_buff( this, "talbadars_stratagem", find_spell( 342415 ) )
-                                  ->set_duration( timespan_t::zero() )
-                                  ->set_refresh_behavior( buff_refresh_behavior::DURATION );
 }
 
-void priest_t::init_rng_shadow()
-{
-  rppm.eternal_call_to_the_void = get_rppm( "eternal_call_to_the_void", legendary.eternal_call_to_the_void );
-}
 
 void priest_t::init_spells_shadow()
 {
@@ -2012,10 +1851,6 @@ void priest_t::init_background_actions_shadow()
     background_actions.psychic_link = new actions::spells::psychic_link_t( *this );
   }
 
-  if ( legendary.eternal_call_to_the_void->ok() )
-  {
-    background_actions.eternal_call_to_the_void = new actions::spells::eternal_call_to_the_void_t( *this );
-  }
 }
 
 // ==========================================================================
@@ -2095,9 +1930,7 @@ void priest_t::remove_hungering_void( player_t* target )
 // Helper function to refresh talbadars buff
 void priest_t::refresh_talbadars_buff( action_state_t* s )
 {
-  if ( !legendary.talbadars_stratagem->ok() )
-    return;
-
+ 
   const priest_td_t* td = find_target_data( s->target );
 
   if ( !td )
