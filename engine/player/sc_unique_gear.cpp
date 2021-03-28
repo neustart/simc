@@ -5,9 +5,6 @@
 
 #include "sc_enums.hpp"
 #include "unique_gear.hpp"
-
-#include "unique_gear_shadowlands.hpp"
-#include "player/soulbinds.hpp"
 #include "simulationcraft.hpp"
 #include "dbc/racial_spells.hpp"
 #include <cctype>
@@ -814,8 +811,6 @@ void gem::sinister_primal( special_effect_t& effect )
   if ( effect.item -> player -> level() >= 100 )
     return;
 
-  effect.custom_buff = effect.item -> player -> buffs.tempus_repit;
-
   new dbc_proc_callback_t( effect.item, effect );
 }
 
@@ -826,7 +821,7 @@ void gem::indomitable_primal( special_effect_t& effect )
   if ( effect.item -> player -> level() >= 100 )
     return;
 
-  effect.custom_buff = effect.item -> player -> buffs.fortitude;
+  //effect.custom_buff = effect.item -> player -> buffs.fortitude;
 
   new dbc_proc_callback_t( effect.item, effect );
 }
@@ -917,7 +912,6 @@ void gem::courageous_primal( special_effect_t& effect )
     }
   };
 
-  effect.custom_buff = effect.item -> player -> buffs.courageous_primal_diamond_lucidity;
 
   new courageous_primal_proc_t( effect );
 }
@@ -1572,206 +1566,6 @@ void item::spellbound_solium_band( special_effect_t& effect )
 }
 
 
-void item::legendary_ring( special_effect_t& effect )
-{
-  maintenance_check( 528 );
-
-  player_t* p = effect.item -> player;
-  buff_t* buff = nullptr;
-
-  struct legendary_ring_damage_t: public spell_t
-  {
-    double damage_coeff;
-    legendary_ring_damage_t( special_effect_t& originaleffect, const spell_data_t* spell ):
-      spell_t( spell -> name_cstr(), originaleffect.player, spell ),
-      damage_coeff( 0 )
-    {
-      damage_coeff = originaleffect.player -> find_spell( originaleffect.spell_id ) -> effectN( 1 ).average( originaleffect.item ) / 10000.0;
-      background = split_aoe_damage = true;
-      may_crit = false;
-      callbacks = false;
-      trigger_gcd = timespan_t::zero();
-      aoe = -1;
-      radius = 20;
-      range = -1;
-      travel_speed = 0.0;
-      item = originaleffect.item;
-      if ( originaleffect.player -> level() == 110 )
-        damage_coeff = 0.0;
-    }
-
-    void init() override
-    {
-      spell_t::init();
-
-      snapshot_flags = STATE_MUL_DA;
-      update_flags = 0;
-    }
-
-    double composite_da_multiplier( const action_state_t* ) const override
-    {
-      return damage_coeff;
-    }
-  };
-
-    struct legendary_ring_buff_t: public buff_t
-    {
-      struct legendary_ring_delay_event_t : public event_t
-      {
-        player_t* player;
-        action_t* boom;
-        double value;
-
-        legendary_ring_delay_event_t( player_t* p, action_t* b, double v ) :
-          event_t( *p, timespan_t::from_seconds( 1.0 ) ), player( p ), boom( b ), value( v )
-        { }
-
-        const char* name() const override
-        { return "legendary_ring_boom_delay"; }
-
-        void execute() override
-        {
-          if ( ! player -> is_sleeping() )
-          {
-            boom -> base_dd_min = boom -> base_dd_max = value;
-            boom -> execute();
-          }
-        }
-      };
-
-      action_t* boom;
-      player_t* p;
-
-      legendary_ring_buff_t( special_effect_t& originaleffect, const std::string& name, const spell_data_t* buff, const spell_data_t* damagespell ):
-        buff_t( originaleffect.player, name, buff, originaleffect.item ),
-        boom( nullptr ), p( originaleffect.player )
-      {
-        add_invalidate( CACHE_PLAYER_DAMAGE_MULTIPLIER );
-        set_default_value( originaleffect.player -> find_spell( originaleffect.spell_id ) -> effectN( 1 ).average( originaleffect.item ) / 10000.0 );
-        boom = p -> find_action( damagespell -> name_cstr() );
-
-        if ( !boom )
-        {
-          boom = p -> create_proc_action( damagespell -> name_cstr(), originaleffect );
-        }
-
-        if ( !boom )
-        {
-          boom = new legendary_ring_damage_t( originaleffect, damagespell );
-        }
-        p -> buffs.legendary_aoe_ring = this;
-        if ( p -> level() == 110 ) // No damage boost at level 110.
-          default_value = 0;
-      }
-
-      void expire_override( int expiration_stacks, timespan_t remaining_duration ) override
-      {
-        double cv = current_value;
-
-        buff_t::expire_override( expiration_stacks, remaining_duration );
-
-        if ( cv > 0 )
-          make_event<legendary_ring_delay_event_t>( *sim, p, boom, cv );
-      }
-  };
-
-
-  if ( effect.spell_id != 187613 )
-  {
-    const spell_data_t* buffspell = nullptr;
-    const spell_data_t* actionspell = nullptr;
-    switch ( p -> convert_hybrid_stat( STAT_STR_AGI_INT ) )
-    {
-    case STAT_STRENGTH:
-      buffspell = p -> find_spell( 187619 );
-      actionspell = p -> find_spell( 187624 );
-      break;
-    case STAT_AGILITY:
-      buffspell = p -> find_spell( 187620 );
-      actionspell = p -> find_spell( 187626 );
-      break;
-    case STAT_INTELLECT:
-      buffspell = p -> find_spell( 187616 );
-      actionspell = p -> find_spell( 187625 );
-      break;
-    default:
-      break;
-    }
-
-    if ( buffspell && actionspell )
-    {
-      auto name = util::tokenize_fn( buffspell -> name_cstr() );
-      buff = new legendary_ring_buff_t( effect, name, buffspell, actionspell );
-    }
-
-    // Make legendary ring do it's accounting after target has been damaged
-    p -> assessor_out_damage.add( assessor::TARGET_DAMAGE + 1, [ buff ]( result_amount_type, action_state_t* state )
-    {
-      if ( ! buff -> up() )
-      {
-        return assessor::CONTINUE;
-      }
-
-      buff -> current_value += state -> result_amount;
-      if ( buff -> sim -> debug )
-      {
-        buff -> sim -> out_debug.printf( "%s %s stores %.2f damage from %s on %s, new stored amount = %.2f",
-                         buff -> player -> name(),
-                         buff -> name(),
-                         state -> result_amount, state -> action -> name(), state -> target -> name(),
-                         buff -> current_value );
-      }
-      return assessor::CONTINUE;
-    } );
-
-    // Generate functions for pets
-    for ( auto& pet : p -> pet_list )
-    {
-      if ( ! pet -> cast_pet() -> affects_wod_legendary_ring )
-      {
-        continue;
-      }
-
-      pet -> assessor_out_damage.add( assessor::TARGET_DAMAGE + 1, [ buff ]( result_amount_type, action_state_t* state )
-      {
-        if ( ! buff -> check() )
-        {
-          return assessor::CONTINUE;
-        }
-
-        buff -> current_value += state -> result_amount;
-        if ( buff -> sim -> debug )
-        {
-          buff -> sim -> out_debug.printf( "%s %s stores %.2f damage from %s %s on %s, new stored amount = %.2f",
-                           state -> action -> player -> name(),
-                           buff -> name(),
-                           state -> result_amount, buff -> player -> name(), state -> action -> name(),
-                           state -> target -> name(),
-                           buff -> current_value );
-        }
-        return assessor::CONTINUE;
-      } );
-    }
-  }
-  else // Tanks
-  {
-    buff = buff_t::find( p, "sanctus" );
-    if ( ! buff )
-    {
-      const spell_data_t* driver_spell = p -> find_spell( effect.spell_id );
-      const spell_data_t* spell = p -> find_spell( 187617 );
-      buff = make_buff( p, "sanctus", spell )
-        ->add_invalidate( CACHE_VERSATILITY )
-        ->set_default_value( driver_spell -> effectN( 1 ).average( effect.item ) / 10000.0 );
-      p -> buffs.legendary_tank_buff = buff;
-    }
-  }
-
-  effect.custom_buff = buff;
-  effect.type = SPECIAL_EFFECT_USE;
-  effect.cooldown_ = timespan_t::from_seconds( 120 );
-}
-
 void item::gronntooth_war_horn( special_effect_t& effect )
 {
   stat_buff_t* buff = make_buff<stat_buff_t>( effect.player, "demonbane", effect.driver() -> effectN( 1 ).trigger(), effect.item );
@@ -1987,8 +1781,6 @@ void item::endurance_of_niuzao( special_effect_t& effect )
 
   const spell_data_t* cd = effect.item -> player -> find_spell( 148010 );
 
-  effect.item -> player -> legendary_tank_cloak_cd = effect.item -> player -> get_cooldown( "endurance_of_niuzao" );
-  effect.item -> player -> legendary_tank_cloak_cd -> duration = cd -> duration();
 }
 
 void item::readiness( special_effect_t& effect )
@@ -4504,17 +4296,7 @@ bool unique_gear::create_fallback_buffs( const special_effect_t& effect, const s
  */
 void unique_gear::register_special_effects()
 {
-  // Register legion special effects
-  register_special_effects_legion();
-
-  // Register azerite special effects
-  azerite::register_azerite_powers();
-
-  register_special_effects_bfa();
-
-  shadowlands::register_special_effects();
-  covenant::soulbinds::register_special_effects();
-
+  
   /* Legacy Effects, pre-5.0 */
   register_special_effect( 45481,  "ProcOn/hit_45479Trigger"            ); /* Shattered Sun Pendant of Acumen */
   register_special_effect( 45482,  "ProcOn/hit_45480Trigger"            ); /* Shattered Sun Pendant of Might */
@@ -4702,7 +4484,6 @@ void unique_gear::register_hotfixes()
 {
   register_hotfixes_legion();
   register_hotfixes_bfa();
-  shadowlands::register_hotfixes();
 }
 
 void unique_gear::register_target_data_initializers( sim_t* sim )
@@ -4714,10 +4495,7 @@ void unique_gear::register_target_data_initializers( sim_t* sim )
 
   register_target_data_initializers_legion( sim );
   register_target_data_initializers_bfa( sim );
-  azerite::register_azerite_target_data_initializers( sim );
 
-  shadowlands::register_target_data_initializers( *sim );
-  covenant::soulbinds::register_target_data_initializers( sim );
 }
 
 special_effect_t* unique_gear::find_special_effect( player_t* actor, unsigned spell_id, special_effect_e type )

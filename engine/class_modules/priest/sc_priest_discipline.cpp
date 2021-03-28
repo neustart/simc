@@ -4,7 +4,6 @@
 // Wiki: https://github.com/simulationcraft/simc/wiki/Priests
 // ==========================================================================
 
-#include "player/covenant.hpp"
 #include "sc_enums.hpp"
 #include "sc_priest.hpp"
 
@@ -46,12 +45,10 @@ struct penance_t final : public priest_spell_t
   struct penance_tick_t final : public priest_spell_t
   {
     bool first_tick;
-    const conduit_data_t swift_penitence;
 
     penance_tick_t( priest_t& p, stats_t* stats )
       : priest_spell_t( "penance_tick", p, p.dbc->spell( 47666 ) ),
-        first_tick( false ),
-        swift_penitence( p.find_conduit_spell( "Swift Penitence" ) )
+        first_tick( false )
     {
       background  = true;
       dual        = true;
@@ -63,11 +60,6 @@ struct penance_t final : public priest_spell_t
     double action_da_multiplier() const override
     {
       double m = priest_spell_t::action_da_multiplier();
-
-      if ( first_tick && swift_penitence.ok() )
-      {
-        m *= 1 + swift_penitence.percent();
-      }
 
       return m;
     }
@@ -126,10 +118,6 @@ struct penance_t final : public priest_spell_t
   double cost() const override
   {
     auto cost = base_t::cost();
-    if ( priest().buffs.the_penitent_one->check() )
-    {
-      cost *= ( 100 + priest().buffs.the_penitent_one->data().effectN( 2 ).base_value() ) / 100.0;
-    }
     return cost;
   }
 
@@ -137,10 +125,6 @@ struct penance_t final : public priest_spell_t
   {
     // Do not haste ticks!
     auto tt = base_tick_time;
-    if ( priest().buffs.the_penitent_one->check() )
-    {
-      tt *= ( 100 + priest().buffs.the_penitent_one->data().effectN( 1 ).base_value() ) / 100.0;
-    }
     return tt;
   }
 
@@ -149,7 +133,7 @@ struct penance_t final : public priest_spell_t
     priest_spell_t::last_tick( d );
 
     priest().buffs.power_of_the_dark_side->expire();
-    priest().buffs.the_penitent_one->decrement();
+ 
   }
 
   void execute() override
@@ -158,7 +142,6 @@ struct penance_t final : public priest_spell_t
 
     priest_spell_t::execute();
 
-    priest().buffs.the_penitent_one->up();        // benefit tracking
     priest().buffs.power_of_the_dark_side->up();  // benefit tracking
   }
 };
@@ -241,22 +224,6 @@ struct schism_t final : public priest_spell_t
   }
 };
 
-// Heal allies effect not implemented
-struct shadow_covenant_t final : public priest_spell_t
-{
-  shadow_covenant_t( priest_t& player, util::string_view options_str )
-    : priest_spell_t( "shadow_covenant", player, player.talents.shadow_covenant )
-  {
-    parse_options( options_str );
-  }
-
-  void execute() override
-  {
-    priest_spell_t::execute();
-
-    priest().buffs.shadow_covenant->trigger();
-  }
-};
 
 // Implemented as a dummy effect, without providing absorbs
 struct spirit_shell_t final : public priest_spell_t
@@ -295,8 +262,6 @@ void priest_t::create_buffs_discipline()
                                ->set_default_value( talents.sins_of_the_many->effectN( 1 ).percent() )
                                ->set_duration( talents.sins_of_the_many->duration() );
 
-  buffs.shadow_covenant = make_buff( this, "shadow_covenant", talents.shadow_covenant->effectN( 4 ).trigger() )
-                              ->set_trigger_spell( talents.shadow_covenant );
 
   buffs.spirit_shell = make_buff( this, "spirit_shell", talents.spirit_shell );
 }
@@ -323,7 +288,7 @@ void priest_t::init_spells_discipline()
   talents.shining_force = find_talent_spell( "Shining Force" );
   // T40
   talents.sins_of_the_many = find_talent_spell( "Sins of the Many" );
-  talents.shadow_covenant  = find_talent_spell( "Shadow Covenant" );
+  //talents.shadow_covenant  = find_talent_spell( "Shadow Covenant" );
   // T45
   talents.purge_the_wicked = find_talent_spell( "Purge the Wicked" );
   talents.divine_star      = find_talent_spell( "Divine Star" );
@@ -359,10 +324,6 @@ action_t* priest_t::create_action_discipline( util::string_view name, util::stri
   if ( name == "purge_the_wicked" )
   {
     return new purge_the_wicked_t( *this, options_str );
-  }
-  if ( name == "shadow_covenant" )
-  {
-    return new shadow_covenant_t( *this, options_str );
   }
   if ( name == "spirit_shell" )
   {
