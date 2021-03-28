@@ -175,37 +175,7 @@ struct spell_desc_vars_t : func_field_t<spell_desc_vars_t, spell_data_t> {
   }
 };
 
-struct spell_covenant_id_t : func_field_t<spell_covenant_id_t, spell_data_t> {
-  const char* operator()( const dbc_t& dbc, const spell_data_t& data ) const {
-    const auto& covenant_entry = covenant_ability_entry_t::find( data.name_cstr(), dbc.ptr );
-    if ( covenant_entry.spell_id && covenant_entry.spell_id == data.id() )
-    {
-      return util::covenant_type_string( static_cast<covenant_e>( covenant_entry.covenant_id ) );
-    }
-
-    const auto& soulbind_entry = soulbind_ability_entry_t::find( data.id(), dbc.ptr );
-    if ( soulbind_entry.spell_id && soulbind_entry.spell_id == data.id() )
-    {
-      return util::covenant_type_string( static_cast<covenant_e>( soulbind_entry.covenant_id ) );
-    }
-
-    return "";
-  }
-};
-
-struct spell_conduit_id_t : func_field_t<spell_conduit_id_t, spell_data_t> {
-  unsigned operator()( const dbc_t& dbc, const spell_data_t& data ) const {
-    const auto& conduit_entry = conduit_entry_t::find_by_spellid( data.id(), dbc.ptr );
-    if ( conduit_entry.spell_id && conduit_entry.spell_id == data.id() )
-    {
-      return conduit_entry.id;
-    }
-
-    return 0;
-  }
-};
-
-static constexpr std::array<sdata_field_t, 42> _spell_data_fields { {
+static constexpr std::array<sdata_field_t, 38> _spell_data_fields { {
   { "name",              FIELD( &spell_data_t::_name ) },
   { "id",                FIELD( &spell_data_t::_id ) },
   { "speed",             FIELD( &spell_data_t::_prj_speed ) },
@@ -237,8 +207,6 @@ static constexpr std::array<sdata_field_t, 42> _spell_data_fields { {
   { "family",            FIELD( &spell_data_t::_class_flags_family ) },
   { "stance_mask",       FIELD( &spell_data_t::_stance_mask ) },
   { "mechanic",          FIELD( &spell_data_t::_mechanic ) },
-  { "power_id",          FIELD( &spell_data_t::_power_id ) }, // Azereite power id
-  { "essence_id",        FIELD( &spell_data_t::_essence_id ) }, // Azereite essence id
   { "desc",              spell_text_field_t< MEM_FN_T( &spelltext_data_t::desc ) >{} },
   { "tooltip",           spell_text_field_t< MEM_FN_T( &spelltext_data_t::tooltip ) >{} },
   { "rank",              spell_text_field_t< MEM_FN_T( &spelltext_data_t::rank ) >{} },
@@ -246,8 +214,6 @@ static constexpr std::array<sdata_field_t, 42> _spell_data_fields { {
   { "req_max_level",     FIELD( &spell_data_t::_req_max_level ) },
   { "dmg_class",         FIELD( &spell_data_t::_dmg_class ) },
   { "max_targets",       FIELD( &spell_data_t::_max_targets ) },
-  { "covenant",          spell_covenant_id_t{} },
-  { "conduit_id",        spell_conduit_id_t{} },
 } };
 
 #undef FIELD
@@ -258,22 +224,19 @@ struct class_info_t {
   unsigned mask;
   unsigned spell_family;
 };
-static constexpr std::array<class_info_t, 12> _class_info { {
+static constexpr std::array<class_info_t, 9> _class_info { {
   { "Warrior",       1U <<  0,   4 },
   { "Paladin",       1U <<  1,  10 },
   { "Hunter",        1U <<  2,   9 },
   { "Rogue",         1U <<  3,   8 },
   { "Priest",        1U <<  4,   6 },
-  { "DeathKnight",   1U <<  5,  15 },
   { "Shaman",        1U <<  6,  11 },
   { "Mage",          1U <<  7,   3 },
   { "Warlock",       1U <<  8,   5 },
-  { "Monk",          1U <<  9,  53 },
   { "Druid",         1U << 10,   7 },
-  { "DemonHunter",   1U << 11, 107 },
 } };
 
-static constexpr std::array<util::string_view, 33> _race_strings { {
+static constexpr std::array<util::string_view, 23> _race_strings { {
   "",
   "human",
   "orc",
@@ -286,10 +249,6 @@ static constexpr std::array<util::string_view, 33> _race_strings { {
   "goblin",
   "blood_elf",
   "draenei",
-  "dark_iron_dwarf",
-  "vulpera",
-  "maghar_orc",
-  "mechagnome",
   "",
   "",
   "",
@@ -300,13 +259,7 @@ static constexpr std::array<util::string_view, 33> _race_strings { {
   "",
   "",
   "pandaren",
-  "",
-  "nightborne",
-  "highmountain_tauren",
-  "void_elf",
-  "lightforged_draenei",
-  "zandalari_troll",
-  "kul_tiran"
+  ""
 } };
 
 struct expr_data_map_t
@@ -315,7 +268,7 @@ struct expr_data_map_t
   expr_data_e type;
 };
 
-static constexpr std::array<expr_data_map_t, 13> expr_map { {
+static constexpr std::array<expr_data_map_t, 8> expr_map { {
   { "spell", DATA_SPELL },
   { "talent", DATA_TALENT },
   { "effect", DATA_EFFECT },
@@ -323,12 +276,7 @@ static constexpr std::array<expr_data_map_t, 13> expr_map { {
   { "class_spell", DATA_CLASS_SPELL },
   { "race_spell", DATA_RACIAL_SPELL },
   { "mastery", DATA_MASTERY_SPELL },
-  { "spec_spell", DATA_SPECIALIZATION_SPELL },
-  { "azerite", DATA_AZERITE_SPELL },
-  { "covenant_spell", DATA_COVENANT_SPELL },
-  { "soulbind_spell", DATA_SOULBIND_SPELL },
-  { "conduit_spell", DATA_CONDUIT_SPELL },
-  { "runeforge_spell", DATA_RUNEFORGE_SPELL }
+  { "spec_spell", DATA_SPECIALIZATION_SPELL }
 } };
 
 expr_data_e parse_data_type( util::string_view name )
@@ -513,41 +461,7 @@ struct spell_list_expr_t : public spell_data_expr_t
         } );
         break;
       }
-      case DATA_AZERITE_SPELL:
-      {
-        for ( const auto& p : azerite_power_entry_t::data( dbc.ptr ) )
-        {
-          if ( range::find( result_spell_list, p.spell_id ) == result_spell_list.end() )
-          {
-            result_spell_list.push_back( p.spell_id );
-          }
-        }
-        break;
-      }
-      case DATA_COVENANT_SPELL:
-        range::for_each( covenant_ability_entry_t::data( dbc.ptr ),
-            [this]( const covenant_ability_entry_t& e ) {
-              result_spell_list.push_back( e.spell_id );
-        } );
-        break;
-      case DATA_SOULBIND_SPELL:
-        range::for_each( soulbind_ability_entry_t::data( dbc.ptr ),
-            [this]( const soulbind_ability_entry_t& e ) {
-              result_spell_list.push_back( e.spell_id );
-        } );
-        break;
-      case DATA_CONDUIT_SPELL:
-        range::for_each( conduit_entry_t::data( dbc.ptr ),
-            [this]( const conduit_entry_t& e ) {
-              result_spell_list.push_back( e.spell_id );
-        } );
-        break;
-      case DATA_RUNEFORGE_SPELL:
-        range::for_each( runeforge_legendary_entry_t::data( dbc.ptr ),
-            [this]( const runeforge_legendary_entry_t& e ) {
-              result_spell_list.push_back( e.spell_id );
-        } );
-        break;
+      
       default:
         return expression::TOK_UNKNOWN;
     }
@@ -856,31 +770,31 @@ struct spell_class_expr_t : public spell_list_expr_t
   spell_class_expr_t( dbc_t& dbc, expr_data_e type ) : spell_list_expr_t( dbc, "class", type ) { }
 
   // returns true for spells that should check spell class family
-  bool check_spell_class_family( const spell_data_t& spell ) const
-  {
-    auto check_spell = []( unsigned spell_id, bool ptr ) {
-      // conduit spells are safe to match by spell family
-      const auto& conduit = conduit_entry_t::find_by_spellid( spell_id, ptr );
-      if ( conduit.spell_id && conduit.spell_id == spell_id )
-        return true;
+  //bool check_spell_class_family( const spell_data_t& spell ) const
+  //{
+  //  auto check_spell = []( unsigned spell_id, bool ptr ) {
+  //    // conduit spells are safe to match by spell family
+  //    const auto& conduit = conduit_entry_t::find_by_spellid( spell_id, ptr );
+  //    if ( conduit.spell_id && conduit.spell_id == spell_id )
+  //      return true;
 
-      // legendary spells are safe to match by spell family
-      const auto legendary = runeforge_legendary_entry_t::find_by_spellid( spell_id, ptr );
-      return !legendary.empty();
-    };
+  //    // legendary spells are safe to match by spell family
+  //    const auto legendary = runeforge_legendary_entry_t::find_by_spellid( spell_id, ptr );
+  //    return !legendary.empty();
+  //  };
 
-    if ( check_spell( spell.id(), dbc.ptr ) )
-      return true;
+  //  if ( check_spell( spell.id(), dbc.ptr ) )
+  //    return true;
 
-    // Also sub-spells of eligible drivers, only search one level deep
-    for ( auto driver_spell : spell.drivers() )
-    {
-      if ( check_spell( driver_spell->id(), dbc.ptr ) )
-        return true;
-    }
+  //  // Also sub-spells of eligible drivers, only search one level deep
+  //  for ( auto driver_spell : spell.drivers() )
+  //  {
+  //    if ( check_spell( driver_spell->id(), dbc.ptr ) )
+  //      return true;
+  //  }
 
-    return false;
-  }
+  //  return false;
+  //}
 
   std::vector<uint32_t> operator==( const spell_data_expr_t& other ) override
   {
@@ -900,7 +814,7 @@ struct spell_class_expr_t : public spell_list_expr_t
     const unsigned class_family = class_str_to_family( other.result_str );
     return filter_spells( [&]( const spell_data_t& spell ) {
         return ( spell.class_mask() & class_mask ) ||
-               ( spell.class_family() == class_family && check_spell_class_family( spell ) );
+               ( spell.class_family() == class_family );
       } );
   }
 
@@ -922,7 +836,7 @@ struct spell_class_expr_t : public spell_list_expr_t
     const unsigned class_family = class_str_to_family( other.result_str );
     return filter_spells( [&]( const spell_data_t& spell ) {
         return ( spell.class_mask() & class_mask ) == 0 &&
-               !( spell.class_family() == class_family && check_spell_class_family( spell ) );
+               !( spell.class_family() == class_family );
       } );
   }
 };
