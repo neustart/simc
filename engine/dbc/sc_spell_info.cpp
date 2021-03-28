@@ -7,8 +7,6 @@
 
 #include "dbc.hpp"
 #include "dbc/item_set_bonus.hpp"
-#include "dbc/covenant_data.hpp"
-#include "player/covenant.hpp"
 #include "util/static_map.hpp"
 #include "util/string_view.hpp"
 #include "util/util.hpp"
@@ -794,56 +792,6 @@ void spell_flags_xml( const spell_data_t* spell, xml_node_t* parent )
     parent -> add_parm( "passive", "true" );
 }
 
-std::string azerite_essence_str( const spell_data_t* spell,
-                             util::span<const azerite_essence_power_entry_t> data )
-{
-  // Locate spell in the array
-  auto it = range::find_if( data, [ spell ]( const azerite_essence_power_entry_t& e ) {
-    return e.spell_id_base[ 0 ] == spell->id() || e.spell_id_base[ 1 ] == spell->id() ||
-           e.spell_id_upgrade[ 0 ] == spell->id() || e.spell_id_upgrade[ 1 ] == spell->id();
-  } );
-
-  if ( it == data.end() )
-  {
-    return "";
-  }
-
-  std::ostringstream s;
-
-  s << "(";
-
-  s << "Type: ";
-
-  if ( it->spell_id_base[ 0 ] == spell->id() )
-  {
-    s << "Major/Base";
-  }
-  else if ( it->spell_id_base[ 1 ] == spell->id() )
-  {
-    s << "Minor/Base";
-  }
-  else if ( it->spell_id_upgrade[ 0 ] == spell->id() )
-  {
-    s << "Major/Upgrade";
-  }
-  else if ( it->spell_id_upgrade[ 1 ] == spell->id() )
-  {
-    s << "Minor/Upgrade";
-  }
-  else
-  {
-    s << "Unknown";
-  }
-  s << ", ";
-
-
-  s << "Rank: " << it->rank;
-
-
-  s << ")";
-
-  return s.str();
-}
 
 } // unnamed namespace
 
@@ -1285,23 +1233,6 @@ std::string spell_info::to_str( const dbc_t& dbc, const spell_data_t* spell, int
     fmt::print( s, "Race             : {} (0x{:0x})\n", fmt::join( races, ", " ), spell -> race_mask() );
   }
 
-  const auto& covenant_spell = covenant_ability_entry_t::find( spell->name_cstr(), dbc.ptr );
-  if ( covenant_spell.spell_id == spell->id() )
-  {
-    s << "Covenant         : ";
-    s << util::inverse_tokenize(
-        util::covenant_type_string( static_cast<covenant_e>( covenant_spell.covenant_id ) ) );
-    s << std::endl;
-  }
-
-  const auto& soulbind_spell = soulbind_ability_entry_t::find( spell->id(), dbc.ptr );
-  if ( soulbind_spell.spell_id == spell->id() )
-  {
-    s << "Covenant         : ";
-    s << util::inverse_tokenize(
-        util::covenant_type_string( static_cast<covenant_e>( soulbind_spell.covenant_id ) ) );
-    s << std::endl;
-  }
   std::string school_string = util::school_type_string( spell -> get_school_type() );
   school_string[ 0 ] = std::toupper( school_string[ 0 ] );
   s << "School           : " << school_string << std::endl;
@@ -1630,39 +1561,6 @@ std::string spell_info::to_str( const dbc_t& dbc, const spell_data_t* spell, int
     s << "Mechanic         : " << mechanic_str( spell -> mechanic() ) << std::endl;
   }
 
-  if ( spell -> power_id() > 0 )
-  {
-    s << "Azerite Power Id : " << spell -> power_id() << std::endl;
-  }
-
-  if ( spell->essence_id() > 0 )
-  {
-    s << "Azerite EssenceId: " << spell->essence_id() << " ";
-
-    const auto data = azerite_essence_power_entry_t::data_by_essence_id( spell->essence_id(), dbc.ptr );
-
-    s << azerite_essence_str( spell, data );
-    s << std::endl;
-  }
-
-  const auto& conduit = conduit_entry_t::find_by_spellid( spell->id(), dbc.ptr );
-  if ( conduit.spell_id && conduit.spell_id == spell->id() )
-  {
-    s << "Conduit Id       : " << conduit.id;
-
-    auto ranks = conduit_rank_entry_t::find( conduit.id, dbc.ptr );
-    std::vector<std::string> rank_str;
-    range::for_each( ranks, [&rank_str]( const conduit_rank_entry_t& entry ) {
-      rank_str.emplace_back( fmt::format( "{}", entry.value ) );
-    } );
-
-    if ( !ranks.empty() )
-    {
-      fmt::print( s, " (values={})", fmt::join( rank_str, ", " ) );
-    }
-
-    s << std::endl;
-  }
 
   if ( spell -> proc_flags() > 0 )
   {

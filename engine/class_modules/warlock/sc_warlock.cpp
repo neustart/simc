@@ -25,9 +25,6 @@ struct drain_life_t : public warlock_spell_t
       may_crit = false;
       dot_behavior = DOT_REFRESH;
 
-      // SL - Legendary
-      dot_duration *= 1.0 + p->legendary.claw_of_endereth->effectN( 1 ).percent();
-      base_tick_time *= 1.0 + p->legendary.claw_of_endereth->effectN( 1 ).percent();
     }
 
     double bonus_ta( const action_state_t* s ) const override
@@ -77,9 +74,6 @@ struct drain_life_t : public warlock_spell_t
     hasted_ticks = false;
     may_crit     = false;
 
-    // SL - Legendary
-    dot_duration *= 1.0 + p->legendary.claw_of_endereth->effectN( 1 ).percent();
-    base_tick_time *= 1.0 + p->legendary.claw_of_endereth->effectN( 1 ).percent();
   }
 
   void execute() override
@@ -90,34 +84,10 @@ struct drain_life_t : public warlock_spell_t
         p()->buffs.inevitable_demise->expire();
     }
 
-    if ( p()->azerite.inevitable_demise.ok() && p()->buffs.id_azerite->check() )
-    {
-      if ( p()->buffs.drain_life->check() )
-        p()->buffs.id_azerite->expire();
-    }
-
     warlock_spell_t::execute();
 
     p()->buffs.drain_life->trigger();
 
-    if ( p()->covenant.soul_rot->ok() && p()->buffs.soul_rot->check() )
-    {
-      const auto& tl = target_list();
-      
-      for ( auto& t : tl )
-      {
-        //Don't apply aoe version to primary target
-        if ( t == target )
-          continue;
-
-        auto data = td( t );
-        if ( data->dots_soul_rot->is_ticking() )
-        {
-          aoe_dot->set_target( t );
-          aoe_dot->execute();
-        }
-      }
-    }
   }
 
   double bonus_ta( const action_state_t* s ) const override
@@ -163,17 +133,6 @@ struct drain_life_t : public warlock_spell_t
 
     warlock_spell_t::last_tick( d );
 
-    if ( p()->covenant.soul_rot->ok() )
-    {
-      const auto& tl = target_list();
-
-      for ( auto& t : tl )
-      {
-        auto data = td( t );
-        if ( data->dots_drain_life_aoe->is_ticking() )
-          data->dots_drain_life_aoe->cancel();
-      }
-    }
   }
 };  
 
@@ -190,8 +149,6 @@ struct impending_catastrophe_dot_t : public warlock_spell_t
   
   timespan_t composite_dot_duration( const action_state_t* s ) const override
   {
-   if ( s->chain_target == 0 )
-     return dot_duration * ( 1.0 + p()->conduit.catastrophic_origin.percent() );
 
    return dot_duration;
   }
@@ -206,157 +163,6 @@ struct impending_catastrophe_impact_t : public warlock_spell_t
     may_miss   = false;
     dual       = true;
   }
-};
-
-struct impending_catastrophe_t : public warlock_spell_t
-{
-  action_t* impending_catastrophe_impact;
-  action_t* impending_catastrophe_dot;
-
-  impending_catastrophe_t( warlock_t* p, util::string_view options_str ) : 
-    warlock_spell_t( "impending_catastrophe", p, p->covenant.impending_catastrophe ),
-    impending_catastrophe_impact( new impending_catastrophe_impact_t( p ) ),
-    impending_catastrophe_dot( new impending_catastrophe_dot_t( p ) )
-  {
-    parse_options( options_str );
-    travel_speed = 16;
-    aoe = -1;
-   
-    add_child( impending_catastrophe_impact );
-    add_child( impending_catastrophe_dot );
-  }
-
-  void impact( action_state_t* s ) override
-  {
-    warlock_spell_t::impact( s );
-
-    impending_catastrophe_dot->set_target( s->target );
-    impending_catastrophe_dot->execute();
-
-    impending_catastrophe_impact->set_target( s->target );
-    impending_catastrophe_impact->execute();
-  }
-};
-
-struct scouring_tithe_t : public warlock_spell_t
-{
-  scouring_tithe_t( warlock_t* p, util::string_view options_str )
-    : warlock_spell_t( "scouring_tithe", p, p->covenant.scouring_tithe ) 
-  {
-    parse_options( options_str );
-    can_havoc = true;
-  }
-
-  void last_tick( dot_t* d ) override
-  {
-    warlock_spell_t::last_tick( d );
-
-    if ( !d->target->is_sleeping() )
-    {
-      p()->cooldowns.scouring_tithe->reset( true );
-    }
-  }
-};
-
-struct soul_rot_t : public warlock_spell_t
-{
-  soul_rot_t( warlock_t* p, util::string_view options_str )
-    : warlock_spell_t( "soul_rot", p, p->covenant.soul_rot )
-
-  {
-    parse_options( options_str );
-    aoe = 1 + as<int>( p->covenant.soul_rot->effectN( 3 ).base_value() );
-    radius *= 1.0 + p->conduit.soul_eater.percent();
-  }
-
-  void execute() override
-  {
-    warlock_spell_t::execute();
-
-    p()->buffs.soul_rot->trigger();
-  }
-
-  double composite_ta_multiplier( const action_state_t* s ) const override
-  {
-    double pm = warlock_spell_t::composite_ta_multiplier( s );
-    if ( s->chain_target == 0 )
-    {
-      pm *= 2.0; //Hardcoded in tooltip, primary takes double damage
-    }
-
-    pm *= 1.0 + p()->conduit.soul_eater.percent();
-
-    return pm;
-  }
-};
-
-struct decimating_bolt_dmg_t : public warlock_spell_t
-{
-  decimating_bolt_dmg_t( warlock_t* p ) : warlock_spell_t( "decimating_bolt_tick_t", p, p->find_spell( 327059 ) )
-  {
-    background = true;
-    may_miss   = false;
-    dual       = true;
-  }
-
-  double composite_target_multiplier( player_t* target ) const override
-  {
-    double m = warlock_spell_t::composite_target_multiplier( target );
-
-    //This currently matches the bonus multiplier to the spec spells, but is not guaranteed to stay this way. Last checked on PTR 2021-03-07
-    m *= 2.0 - target->health_percentage() * 0.01;
-
-    return m;
-  };
-
-  double action_multiplier() const override
-  {
-    double m = warlock_spell_t::action_multiplier();
-
-    m *= 1.0 + p()->conduit.fatal_decimation.percent();
-
-    return m;
-  }
-};
-
-struct decimating_bolt_t : public warlock_spell_t
-{
-  action_t* decimating_bolt_dmg;
-
-  decimating_bolt_t( warlock_t* p, util::string_view options_str ) : 
-    warlock_spell_t( "decimating_bolt", p, p->covenant.decimating_bolt ),
-    decimating_bolt_dmg( new decimating_bolt_dmg_t( p ) )
-
-  {
-    parse_options( options_str );
-    can_havoc = true;
-    travel_speed = p->find_spell( 327072 )->missile_speed();
-
-    add_child( decimating_bolt_dmg );
-  }
-
-  void impact( action_state_t* s ) override
-  {
-    //TOCHECK: the formulae for Decimating Bolt bonus damage does not appear in spell data, and should be
-    //checked regularly to ensure accuracy
-    double value = p()->buffs.decimating_bolt->default_value - 0.01 * s->target->health_percentage();
-    if ( p()->talents.fire_and_brimstone->ok() )
-      value *= 0.4;
-    p()->buffs.decimating_bolt->trigger( 3, value );
-    
-    warlock_spell_t::impact( s );
-    
-    auto e = make_event<ground_aoe_event_t>( *sim, p(), ground_aoe_params_t()
-      .pulse_time( 0.1_s )
-      .target( s->target )
-      .n_pulses( 4 )
-      .action( decimating_bolt_dmg ), true );
-
-    if ( s->chain_target > 0 )
-      e->pulse_state->persistent_multiplier *= base_aoe_multiplier;
-
-  };
-
 };
 
 // TOCHECK: Does the damage proc affect Seed of Corruption? If so, this needs to be split into specs as well
@@ -442,17 +248,7 @@ warlock_td_t::warlock_td_t( player_t* target, warlock_t& p )
                         range::for_each( p.havoc_spells, []( action_t* a ) { a->target_cache.is_valid = false; } );
                       } );
 
-  // SL - Legendary
-  debuffs_odr = make_buff( *this, "odr_shawl_of_the_ymirjar", source->find_spell(337164) );
-
-  // SL - Conduit
-  //Spell data appears to be missing for a "debuff" type effect, creating a fake one to model the behavior
-  //TOCHECK regularly to see if this can be less kludged
-  debuffs_combusting_engine = make_buff( *this, "combusting_engine" )
-                                  ->set_duration( 30_s )
-                                  ->set_max_stack( 40 )
-                                  ->set_default_value( source->find_conduit_spell("Combusting Engine").percent() );
-
+  
   // Demo
   dots_doom         = target->get_dot( "doom", &p );
   dots_umbral_blaze = target->get_dot( "umbral_blaze", &p );
@@ -487,19 +283,6 @@ void warlock_td_t::target_demise()
     warlock.resource_gain( RESOURCE_SOUL_SHARD, 1, warlock.gains.drain_soul );
   }
 
-  if ( dots_scouring_tithe->is_ticking() )
-  {
-    warlock.sim->print_log( "Player {} demised. Warlock {} gains 5 shards from Scouring Tithe.", target->name(),
-                            warlock.name() );
-
-    warlock.resource_gain( RESOURCE_SOUL_SHARD, 5, warlock.gains.scouring_tithe );
-
-    if ( warlock.conduit.soul_tithe.value() > 0 )
-    {
-      warlock.buffs.soul_tithe->trigger();
-    }
-  }
-
   if ( debuffs_haunt->check() )
   {
     warlock.sim->print_log( "Player {} demised. Warlock {} reset Haunt's cooldown.", target->name(), warlock.name() );
@@ -516,19 +299,6 @@ void warlock_td_t::target_demise()
                            warlock.gains.shadowburn_refund );
   }
 
-  if ( dots_agony->is_ticking() && warlock.legendary.wrath_of_consumption.ok() )
-  {
-    warlock.sim->print_log( "Player {} demised. Warlock {} triggers Wrath of Consumption from Agony.", target->name(), warlock.name() );
-
-    warlock.buffs.wrath_of_consumption->trigger();
-  }
-
-  if ( dots_corruption->is_ticking() && warlock.legendary.wrath_of_consumption.ok() )
-  {
-    warlock.sim->print_log( "Player {} demised. Warlock {} triggers Wrath of Consumption from Corruption.", target->name(), warlock.name() );
-
-    warlock.buffs.wrath_of_consumption->trigger();
-  }
 }
 
 static void accumulate_seed_of_corruption( warlock_td_t* td, double amount )
@@ -546,45 +316,6 @@ static void accumulate_seed_of_corruption( warlock_td_t* td, double amount )
   }
 }
 
-// BFA - Essence
-void warlock_t::trigger_memory_of_lucid_dreams( double gain )
-{
-  if ( !azerite_essence.memory_of_lucid_dreams.enabled() )
-  {
-    return;
-  }
-
-  if ( gain <= 0 )
-  {
-    return;
-  }
-
-  if ( specialization() == SPEC_NONE )
-  {
-    return;
-  }
-
-  // Harcoded 15% proc chance.
-  if ( !rng().roll( 0.15 ) )
-  {
-    return;
-  }
-
-  memory_of_lucid_dreams_accumulator += gain * spells.memory_of_lucid_dreams_base->effectN( 1 ).percent();
-
-  double shards_to_give = floor( memory_of_lucid_dreams_accumulator );
-
-  if ( shards_to_give > 0 )
-  {
-    resource_gain( RESOURCE_SOUL_SHARD, shards_to_give, gains.memory_of_lucid_dreams );
-    memory_of_lucid_dreams_accumulator -= shards_to_give;
-
-    if ( azerite_essence.memory_of_lucid_dreams.rank() >= 3 )
-    {
-      player_t::buffs.lucid_dreams->trigger();
-    }
-  }
-}
 
 warlock_t::warlock_t( sim_t* sim, util::string_view name, race_e r )
   : player_t( sim, WARLOCK, name, r ),
@@ -601,11 +332,6 @@ warlock_t::warlock_t( sim_t* sim, util::string_view name, race_e r )
     warlock_pet_list( this ),
     active(),
     talents(),
-    azerite(),
-    azerite_essence(),
-    legendary(),
-    conduit(),
-    covenant(),
     mastery_spells(),
     cooldowns(),
     spec(),
@@ -659,7 +385,7 @@ double warlock_t::composite_player_target_multiplier( player_t* target, school_e
       m *= 1.0 + td->debuffs_haunt->data().effectN( 2 ).percent();
 	  
 	  //TOCHECK 
-	  m *= 1.0 + ( ( td->debuffs_shadow_embrace->data().effectN( 1 ).percent() ) * ( 1 + conduit.cold_embrace.percent() )
+	  m *= 1.0 + ( ( td->debuffs_shadow_embrace->data().effectN( 1 ).percent() ) 
 		  * td->debuffs_shadow_embrace->check() );
   }
 
@@ -773,18 +499,6 @@ double warlock_t::resource_gain( resource_e resource_type, double amount, gain_t
       expansion::bfa::trigger_leyshocks_grand_compilation( STAT_VERSATILITY_RATING, this );
     }
 
-    // BFA - Azerite
-    // Chaos Shards triggers for all specializations
-    if ( azerite.chaos_shards.ok() )
-    {
-      // Check if soul shard was filled
-      if ( std::floor( resources.current[ RESOURCE_SOUL_SHARD ] ) <
-           std::floor( std::min( resources.current[ RESOURCE_SOUL_SHARD ] + amount, 5.0 ) ) )
-      {
-        if ( rng().roll( azerite.chaos_shards.spell_ref().effectN( 1 ).percent() / 10.0 ) )
-          buffs.chaos_shards->trigger();
-      }
-    }
   }
 
   return player_t::resource_gain( resource_type, amount, source, action );
@@ -843,14 +557,6 @@ action_t* warlock_t::create_action( util::string_view action_name, const std::st
     return new drain_life_t( this, options_str );
   if ( action_name == "grimoire_of_sacrifice" )
     return new grimoire_of_sacrifice_t( this, options_str );  // aff and destro
-  if ( action_name == "decimating_bolt" )
-    return new decimating_bolt_t( this, options_str );
-  if ( action_name == "scouring_tithe" )
-    return new scouring_tithe_t( this, options_str );
-  if ( action_name == "impending_catastrophe" )
-    return new impending_catastrophe_t( this, options_str );
-  if ( action_name == "soul_rot" )
-    return new soul_rot_t( this, options_str );
 
   if ( specialization() == WARLOCK_AFFLICTION )
   {
@@ -912,25 +618,7 @@ void warlock_t::create_buffs()
       make_buff( this, "grimoire_of_sacrifice", talents.grimoire_of_sacrifice->effectN( 2 ).trigger() )
           ->set_chance( 1.0 );
 
-  // Covenants
-  buffs.soul_rot = make_buff(this, "soul_rot", covenant.soul_rot);
-
-  // 4.0 is the multiplier for a 0% health mob
-  buffs.decimating_bolt =
-      make_buff( this, "decimating_bolt", find_spell( 325299 ) )->set_duration( find_spell( 325299 )->duration() )
-                              ->set_default_value(2.0)
-                              ->set_max_stack( talents.drain_soul->ok() ? 1 : 3 );
-
-  // Conduits
-  buffs.soul_tithe = make_buff(this, "soul_tithe", find_spell(340238))
-    ->set_default_value(conduit.soul_tithe.percent());
-
-  // Legendaries
-  buffs.wrath_of_consumption = make_buff( this, "wrath_of_consumption", find_spell( 337130 ) )
-                               ->set_default_value_from_effect( 1 );
-
-  buffs.demonic_synergy = make_buff( this, "demonic_synergy", find_spell( 337060 ) )
-                              ->set_default_value( legendary.relic_of_demonic_synergy->effectN( 1 ).percent() * ( this->specialization() == WARLOCK_DEMONOLOGY ? 1.5 : 1.0 ) );
+  
 }
 
 void warlock_t::init_spells()
@@ -964,39 +652,7 @@ void warlock_t::init_spells()
   talents.grimoire_of_sacrifice     = find_talent_spell( "Grimoire of Sacrifice" );       // Aff/Destro
   talents.soul_conduit              = find_talent_spell( "Soul Conduit" );
 
-  // Legendaries
-  legendary.claw_of_endereth                     = find_runeforge_legendary( "Claw of Endereth" );
-  legendary.relic_of_demonic_synergy             = find_runeforge_legendary( "Relic of Demonic Synergy" );
-  legendary.wilfreds_sigil_of_superior_summoning = find_runeforge_legendary( "Wilfred's Sigil of Superior Summoning" );
-  // Sacrolash is the only spec-specific legendary that can be used by other specs.
-  legendary.sacrolashs_dark_strike = find_runeforge_legendary( "Sacrolash's Dark Strike" );
-  //Wrath is implemented here to catch any potential cross-spec periodic effects
-  legendary.wrath_of_consumption = find_runeforge_legendary("Wrath of Consumption");
-
-  // Conduits
-  conduit.catastrophic_origin  = find_conduit_spell( "Catastrophic Origin" );   // Venthyr
-  conduit.soul_eater           = find_conduit_spell( "Soul Eater" );            // Night Fae
-  conduit.fatal_decimation     = find_conduit_spell( "Fatal Decimation" );      // Necrolord
-  conduit.soul_tithe           = find_conduit_spell( "Soul Tithe" );            // Kyrian
-  conduit.duplicitous_havoc    = find_conduit_spell("Duplicitous Havoc");       // Needed in main for covenants
-
-  // Covenant Abilities
-  covenant.decimating_bolt       = find_covenant_spell( "Decimating Bolt" );        // Necrolord
-  covenant.impending_catastrophe = find_covenant_spell( "Impending Catastrophe" );  // Venthyr
-  covenant.scouring_tithe        = find_covenant_spell( "Scouring Tithe" );         // Kyrian
-  covenant.soul_rot              = find_covenant_spell( "Soul Rot" );               // Night Fae
-
-  // BFA - Essence
-  azerite_essence.memory_of_lucid_dreams = find_azerite_essence( "Memory of Lucid Dreams" );
-  spells.memory_of_lucid_dreams_base     = azerite_essence.memory_of_lucid_dreams.spell( 1U, essence_type::MINOR );
-
-  azerite_essence.vision_of_perfection = find_azerite_essence( "Vision of Perfection" );
-  strive_for_perfection_multiplier = 1.0 + azerite::vision_of_perfection_cdr( azerite_essence.vision_of_perfection );
-  vision_of_perfection_multiplier =
-      azerite_essence.vision_of_perfection.spell( 1U, essence_type::MAJOR )->effectN( 1 ).percent() +
-      azerite_essence.vision_of_perfection.spell( 2U, essence_spell::UPGRADE, essence_type::MAJOR )
-          ->effectN( 1 )
-          .percent();
+  
 }
 
 void warlock_t::init_rng()
@@ -1230,17 +886,6 @@ void warlock_t::init_special_effects()
       } );
   }
 
-  if ( legendary.relic_of_demonic_synergy->ok() )
-  {
-    auto const syn_effect = new special_effect_t( this );
-    syn_effect->name_str = "demonic_synergy_effect";
-    syn_effect->spell_id = 337057;
-    special_effects.push_back( syn_effect );
-
-    auto cb = new warlock::actions::demonic_synergy_callback_t( this, *syn_effect );
-
-    cb->initialize();
-  }
 }
 
 void warlock_t::combat_begin()
@@ -1358,11 +1003,6 @@ void warlock_t::darkglare_extension_helper( warlock_t* p, timespan_t darkglare_e
 
 void warlock_t::malignancy_reduction_helper()
 {
-  if ( rng().roll( conduit.corrupting_leer.percent() ) )
-  {
-    procs.corrupting_leer->occur();
-    cooldowns.darkglare->adjust( -5.0_s );  // Value is in the description so had to hardcode it
-  }
 }
 
 // Function for returning the the number of imps that will spawn in a specified time period.

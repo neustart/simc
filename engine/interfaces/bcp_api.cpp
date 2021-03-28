@@ -12,7 +12,6 @@
 #include "interfaces/sc_http_wininet.hpp"
 #include "interfaces/sc_http.hpp"
 #include "item/item.hpp"
-#include "player/covenant.hpp"
 #include "player/sc_player.hpp"
 #include "sc_enums.hpp"
 #include "sim/sc_sim.hpp"
@@ -805,10 +804,6 @@ player_t* parse_player( sim_t*            sim,
     parse_items( p, player, profile[ "equipment" ][ "href" ].GetString(), caching );
   }
 
-  if ( profile.HasMember( "covenant_progress" ) )
-  {
-    parse_soulbinds( p, player, profile[ "covenant_progress" ], caching );
-  }
 
   if ( ! p -> server_str.empty() )
     p -> armory_extensions( p -> region_str, p -> server_str, player.name, caching );

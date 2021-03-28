@@ -5,7 +5,6 @@
 
 #include "simulationcraft.hpp"
 
-#include "player/covenant.hpp"
 #include "dbc/temporary_enchant.hpp"
 #include "reports.hpp"
 #include "report/report_helper.hpp"
