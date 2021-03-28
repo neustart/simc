@@ -1095,7 +1095,6 @@ player_t::player_t( sim_t* s, player_e t, util::string_view n, race_e r )
     dbc_override( sim->dbc_override.get() ),
     talent_points(),
     profession(),
-    azerite( nullptr ),
     base(),
     initial(),
     current(),
@@ -1172,7 +1171,6 @@ player_t::player_t( sim_t* s, player_e t, util::string_view n, race_e r )
     matching_gear( false ),
     karazhan_trinkets_paired( false ),
     item_cooldown( new cooldown_t("item_cd", *this) ),
-    legendary_tank_cloak_cd( nullptr ),
     warlords_unseeing_eye( 0.0 ),
     warlords_unseeing_eye_stats(),
     auto_attack_multiplier( 1.0 ),
@@ -1212,9 +1210,6 @@ player_t::player_t( sim_t* s, player_e t, util::string_view n, race_e r )
 
   if ( ! is_enemy() && ! is_pet() )
   {
-    azerite = azerite::create_state( this );
-    azerite_essence = azerite::create_essence_state( this );
-    covenant = covenant::create_player_state( this );
     dbc_override_ = std::make_unique<dbc_override_t>( dbc_override );
     dbc_override = dbc_override_.get();
   }
@@ -1827,17 +1822,6 @@ void player_t::init_items()
  *
  * Note, guards against invocation from non-player actors (enemies, adds, pets ...)
  */
-void player_t::init_azerite()
-{
-  if ( is_enemy() || is_pet() )
-  {
-    return;
-  }
-
-  sim->print_debug( "Initializing Azerite sub-system for {}.", *this );
-
-  azerite -> initialize();
-}
 
 void player_t::init_meta_gem()
 {
@@ -1995,14 +1979,6 @@ void player_t::create_special_effects()
     }
   }
 
-  // Initialize generic azerite powers. Note that this occurs later in the process than the class
-  // module spell initialization (init_spells()), which is where the core presumes that each class
-  // module gets the state their azerite powers (through the invocation of find_azerite_spells).
-  // This means that any enabled azerite power that is not referenced in a class module will be
-  // initialized here.
-  azerite::initialize_azerite_powers( this );
-
-  covenant::soulbinds::initialize_soulbinds( this );
 
   // Once all special effects are first-phase initialized, do a pass to first-phase initialize any
   // potential fallback special effects for the actor.
@@ -3130,7 +3106,6 @@ void player_t::create_buffs()
     buffs.blood_fury = make_buff<stat_buff_t>( this, "blood_fury", find_racial_spell( "Blood Fury" ) )
                            ->add_invalidate( CACHE_SPELL_POWER )
                            ->add_invalidate( CACHE_ATTACK_POWER );
-    buffs.fortitude  = make_buff( this, "fortitude", find_spell( 137593 ) )->set_activated( false );
     buffs.shadowmeld = make_buff( this, "shadowmeld", find_spell( 58984 ) )->set_cooldown( timespan_t::zero() );
 
     buffs.ancestral_call[ 0 ] = make_buff<stat_buff_t>( this, "rictus_of_the_laughing_skull", find_spell( 274739 ) );
@@ -3142,26 +3117,8 @@ void player_t::create_buffs()
                         ->add_stat( convert_hybrid_stat( STAT_STR_AGI_INT ),
                           util::round( find_spell( 265226 ) -> effectN( 1 ).average( this, level() ) ) * 3 );
 
-    buffs.archmages_greater_incandescence_agi =
-        make_buff( this, "archmages_greater_incandescence_agi", find_spell( 177172 ) )
-            ->add_invalidate( CACHE_AGILITY );
-    buffs.archmages_greater_incandescence_str =
-        make_buff( this, "archmages_greater_incandescence_str", find_spell( 177175 ) )
-            ->add_invalidate( CACHE_STRENGTH );
-    buffs.archmages_greater_incandescence_int =
-        make_buff( this, "archmages_greater_incandescence_int", find_spell( 177176 ) )
-            ->add_invalidate( CACHE_INTELLECT );
 
-    buffs.archmages_incandescence_agi =
-        make_buff( this, "archmages_incandescence_agi", find_spell( 177161 ) )->add_invalidate( CACHE_AGILITY );
-    buffs.archmages_incandescence_str =
-        make_buff( this, "archmages_incandescence_str", find_spell( 177160 ) )->add_invalidate( CACHE_STRENGTH );
-    buffs.archmages_incandescence_int =
-        make_buff( this, "archmages_incandescence_int", find_spell( 177159 ) )->add_invalidate( CACHE_INTELLECT );
 
-    // Legendary meta haste buff
-    buffs.tempus_repit = make_buff( this, "tempus_repit", find_spell( 137590 ) )
-        ->add_invalidate( CACHE_SPELL_SPEED )->set_activated( false );
 
     buffs.darkflight = make_buff( this, "darkflight", find_racial_spell( "darkflight" ) );
 
@@ -3183,7 +3140,6 @@ void player_t::create_buffs()
                            ->set_chance( 1 )
                            ->set_default_value( 0.1 );  // Not in spelldata
 
-    buffs.courageous_primal_diamond_lucidity = make_buff( this, "lucidity", find_spell( 137288 ) );
 
     buffs.body_and_soul = make_buff( this, "body_and_soul", find_spell( 64129 ) )
                               ->set_max_stack( 1 )
@@ -3197,26 +3153,14 @@ void player_t::create_buffs()
 
     if ( !is_pet() )
     {
-      buffs.memory_of_lucid_dreams = make_buff<stat_buff_t>( this, "memory_of_lucid_dreams",
-        find_spell( 298357 ) );
-
-      auto memory_of_lucid_dreams = find_azerite_essence( "Memory of Lucid Dreams" );
-      buffs.lucid_dreams = make_buff<stat_buff_t>( this, "lucid_dreams", find_spell( 298343 ) );
-      buffs.lucid_dreams->add_stat( STAT_VERSATILITY_RATING,
-        memory_of_lucid_dreams.spell_ref( 3U, essence_spell::UPGRADE, essence_type::MINOR ).effectN( 1 ).average(
-          memory_of_lucid_dreams.item() ) );
-      buffs.lucid_dreams->set_quiet( memory_of_lucid_dreams.rank() < 3 );
-
+      
       buffs.reckless_force = make_buff( this, "reckless_force", find_spell( 302932 ) )
         ->add_invalidate(CACHE_CRIT_CHANCE)
         ->set_default_value( find_spell( 302932 )->effectN( 1 ).percent() );
 
       buffs.reckless_force_counter = make_buff( this, "reckless_force_counter", find_spell( 302917 ) );
 
-      auto worldvein_resonance = find_azerite_essence( "Worldvein Resonance" );
       buffs.lifeblood = make_buff<stat_buff_t>( this, "lifeblood", find_spell( 295137 ) );
-      buffs.lifeblood->add_stat( convert_hybrid_stat( STAT_STR_AGI_INT ),
-        worldvein_resonance.spell( 1, essence_type::MINOR )->effectN( 5 ).average( worldvein_resonance.item() ) );
 
       buffs.seething_rage = make_buff( this, "seething_rage", find_spell( 297126 ) )
         ->set_default_value( find_spell( 297126 )->effectN( 1 ).percent() );
@@ -3224,15 +3168,6 @@ void player_t::create_buffs()
       buffs.guardian_of_azeroth = make_buff( this, "guardian_of_azeroth", find_spell( 295855 ) )
         ->set_default_value( find_spell( 295855 )->effectN( 1 ).percent() )
         ->add_invalidate( CACHE_HASTE );
-
-      auto ripple_in_space = find_azerite_essence( "Ripple in Space" );
-      buffs.reality_shift = make_buff<stat_buff_t>( this, "reality_shift", find_spell( 302916 ) );
-      buffs.reality_shift->add_stat( convert_hybrid_stat( STAT_STR_AGI_INT ),
-        ripple_in_space.spell_ref(1U, essence_type::MINOR).effectN( 2 ).average(
-          ripple_in_space.item() ) );
-      buffs.reality_shift->set_duration( find_spell( 302952 )->duration()
-        + timespan_t::from_seconds( ripple_in_space.spell_ref( 2U, essence_spell::UPGRADE, essence_type::MINOR ).effectN( 1 ).base_value() / 1000 ) );
-      buffs.reality_shift->set_cooldown( find_spell( 302953 )->duration() );
 
       buffs.windfury_totem = make_buff<buff_t>( this, "windfury_totem", find_spell( 327942 ) )
         ->set_duration( sim->max_time * 3 )
@@ -3248,9 +3183,6 @@ void player_t::create_buffs()
         ->set_cooldown( 0_ms )
         ->add_invalidate( CACHE_HASTE );
 
-      // Runecarves
-      buffs.norgannons_sagacity_stacks = make_buff( this, "norgannons_sagacity_stacks", find_spell( 339443 ) );
-      buffs.norgannons_sagacity = make_buff( this, "norgannons_sagacity", find_spell( 339445 ) );
     }
   }
   // .. for enemies
@@ -3746,11 +3678,7 @@ double player_t::composite_spell_speed() const
 
   if ( !is_pet() && !is_enemy() && type != HEALING_ENEMY )
   {
-    if ( buffs.tempus_repit->check() )
-    {
-      speed *= 1.0 / ( 1.0 + buffs.tempus_repit->data().effectN( 1 ).percent() );
-    }
-
+   
     if ( buffs.nefarious_pact )
     {
       speed *= 1.0 / ( 1.0 + buffs.nefarious_pact->check_stack_value() );
@@ -3852,11 +3780,6 @@ double player_t::composite_damage_versatility() const
   for ( auto b : buffs.stat_pct_buffs[ STAT_PCT_BUFF_VERSATILITY ] )
     cdv += b->check_stack_value();
 
-  if ( !is_pet() && !is_enemy() && type != HEALING_ENEMY )
-  {
-    if ( buffs.legendary_tank_buff )
-      cdv += buffs.legendary_tank_buff->check_value();
-  }
 
   if ( buffs.dmf_well_fed )
     cdv += buffs.dmf_well_fed->check_value();
@@ -3876,11 +3799,7 @@ double player_t::composite_heal_versatility() const
     chv += b->check_stack_value();
 
   if ( !is_pet() && !is_enemy() && type != HEALING_ENEMY )
-  {
-    if ( buffs.legendary_tank_buff )
-      chv += buffs.legendary_tank_buff->check_value();
-  }
-
+  
   if ( buffs.dmf_well_fed )
     chv += buffs.dmf_well_fed->check_value();
 
@@ -3897,12 +3816,6 @@ double player_t::composite_mitigation_versatility() const
 
   for ( auto b : buffs.stat_pct_buffs[ STAT_PCT_BUFF_VERSATILITY ] )
     cmv += b->check_stack_value() / 2;
-
-  if ( !is_pet() && !is_enemy() && type != HEALING_ENEMY )
-  {
-    if ( buffs.legendary_tank_buff )
-      cmv += buffs.legendary_tank_buff->check_value() / 2;
-  }
 
   if ( buffs.dmf_well_fed )
     cmv += buffs.dmf_well_fed->check_value() / 2;
@@ -3961,8 +3874,7 @@ double player_t::composite_player_multiplier( school_e school ) const
 {
   double m = 1.0;
 
-  if ( buffs.legendary_aoe_ring && buffs.legendary_aoe_ring->check() )
-    m *= 1.0 + buffs.legendary_aoe_ring->default_value;
+  
 
   if ( buffs.taste_of_mana && buffs.taste_of_mana->check() && school != SCHOOL_PHYSICAL )
   {
@@ -3981,12 +3893,6 @@ double player_t::composite_player_multiplier( school_e school ) const
 
   if ( school != SCHOOL_PHYSICAL )
     m *= 1.0 + racials.magical_affinity->effectN( 1 ).percent();
-
-  if ( buffs.echo_of_eonar && buffs.echo_of_eonar->check() )
-    m *= 1 + buffs.echo_of_eonar->check_value();
-
-  if ( buffs.volatile_solvent_damage && buffs.volatile_solvent_damage->has_common_school( school ) )
-    m *= 1.0 + buffs.volatile_solvent_damage->check_value();
 
   return m;
 }
@@ -4010,22 +3916,10 @@ double player_t::composite_player_target_multiplier( player_t* target, school_e 
   if ( target->race == RACE_ABERRATION && buffs.damage_to_aberrations && buffs.damage_to_aberrations->check() )
     m *= 1.0 + buffs.damage_to_aberrations->stack_value();
 
-  if ( buffs.wild_hunt_tactics )
-  {
-    double health_threshold = 100.0 - ( 100.0 - buffs.wild_hunt_tactics->data().effectN( 5 ).base_value() ) * sim->shadowlands_opts.wild_hunt_tactics_duration_multiplier;
-    // This buff is never triggered so use default_value.
-    if ( target->health_percentage() > health_threshold )
-      m *= 1.0 + buffs.wild_hunt_tactics->default_value;
-  }
+ 
 
   auto td = find_target_data( target );
-  if ( td )
-  {
-    m *= 1.0 + td->debuff.condensed_lifeforce->check_value();
-    m *= 1.0 + td->debuff.adversary->check_value();
-    m *= 1.0 + td->debuff.plagueys_preemptive_strike->check_value();
-    m *= 1.0 + td->debuff.sinful_revelation->check_value();
-  }
+
 
   return m;
 }
@@ -4033,9 +3927,6 @@ double player_t::composite_player_target_multiplier( player_t* target, school_e 
 double player_t::composite_player_heal_multiplier( const action_state_t* ) const
 {
   double m = 1.0;
-
-  if ( buffs.blessing_of_spring->up() )
-    m *= 1.0 + buffs.blessing_of_spring->data().effectN( 1 ).percent();
 
   return m;
 }
@@ -4053,18 +3944,6 @@ double player_t::composite_player_absorb_multiplier( const action_state_t* ) con
 double player_t::composite_player_target_crit_chance( player_t* target ) const
 {
   double c = 0.0;
-
-  if ( const actor_target_data_t* td = get_owner_or_self()->find_target_data( target ) )
-  {
-    // Essence: Blood of the Enemy Major debuff
-    c += td->debuff.blood_of_the_enemy->check_stack_value();
-
-    // Consumable: Potion of Focused Resolve
-    c += td->debuff.focused_resolve->check_stack_value();
-
-    // Darkmoon Deck: Putrescence
-    c += td->debuff.putrid_burst->check_stack_value();
-  }
 
   return c;
 }
@@ -4205,24 +4084,12 @@ double player_t::composite_attribute_multiplier( attribute_e attr ) const
   {
     case ATTR_STRENGTH:
       pct_type = STAT_PCT_BUFF_STRENGTH;
-      if ( buffs.archmages_greater_incandescence_str->check() )
-        m *= 1.0 + buffs.archmages_greater_incandescence_str->data().effectN( 1 ).percent();
-      if ( buffs.archmages_incandescence_str->check() )
-        m *= 1.0 + buffs.archmages_incandescence_str->data().effectN( 1 ).percent();
       break;
     case ATTR_AGILITY:
       pct_type = STAT_PCT_BUFF_AGILITY;
-      if ( buffs.archmages_greater_incandescence_agi->check() )
-        m *= 1.0 + buffs.archmages_greater_incandescence_agi->data().effectN( 1 ).percent();
-      if ( buffs.archmages_incandescence_agi->check() )
-        m *= 1.0 + buffs.archmages_incandescence_agi->data().effectN( 1 ).percent();
       break;
     case ATTR_INTELLECT:
       pct_type = STAT_PCT_BUFF_INTELLECT;
-      if ( buffs.archmages_greater_incandescence_int->check() )
-        m *= 1.0 + buffs.archmages_greater_incandescence_int->data().effectN( 1 ).percent();
-      if ( buffs.archmages_incandescence_int->check() )
-        m *= 1.0 + buffs.archmages_incandescence_int->data().effectN( 1 ).percent();
       if ( sim->auras.arcane_intellect->check() )
         m *= 1.0 + sim->auras.arcane_intellect->value();
       break;
@@ -4631,12 +4498,6 @@ void player_t::combat_begin()
   };
 
   add_timed_buff_triggers( external_buffs.power_infusion, buffs.power_infusion );
-  add_timed_buff_triggers( external_buffs.benevolent_faerie, buffs.benevolent_faerie );
-  add_timed_buff_triggers( external_buffs.blessing_of_summer, buffs.blessing_of_summer ); // TODO: Add a way to specify different durations (The Long Summer conduit).
-  add_timed_buff_triggers( external_buffs.blessing_of_autumn, buffs.blessing_of_autumn );
-  add_timed_buff_triggers( external_buffs.blessing_of_winter, buffs.blessing_of_winter );
-  add_timed_buff_triggers( external_buffs.blessing_of_spring, buffs.blessing_of_spring );
-  add_timed_buff_triggers( external_buffs.conquerors_banner, buffs.conquerors_banner );
 
   if ( buffs.windfury_totem )
   {
@@ -6640,28 +6501,6 @@ void account_absorb_buffs( player_t& p, action_state_t* s, school_e school )
   s->result_absorbed = s->result_amount;
 }
 
-void account_legendary_tank_cloak( player_t& p, action_state_t* s )
-{
-  // Legendary Tank Cloak Proc - max absorb of 1e7 hardcoded (in spellid 146193, effect 1)
-  if ( p.legendary_tank_cloak_cd && p.legendary_tank_cloak_cd->up()    // and the cloak's cooldown is up
-       && s->result_amount > p.resources.current[ RESOURCE_HEALTH ] )  // attack exceeds player health
-  {
-    if ( s->result_amount > 1e7 )
-    {
-      p.gains.endurance_of_niuzao->add( RESOURCE_HEALTH, 1e7, 0 );
-      s->result_amount -= 1e7;
-      s->result_absorbed += 1e7;
-    }
-    else
-    {
-      p.gains.endurance_of_niuzao->add( RESOURCE_HEALTH, s->result_amount, 0 );
-      s->result_absorbed += s->result_amount;
-      s->result_amount = 0;
-    }
-    p.legendary_tank_cloak_cd->start();
-  }
-}
-
 /**
  * Statistical data collection for damage taken.
  */
@@ -6743,7 +6582,6 @@ void player_t::assess_damage( school_e school, result_amount_type type, action_s
 
   assess_damage_imminent( school, type, s );
 
-  account_legendary_tank_cloak( *this, s );
 }
 
 void player_t::do_damage( action_state_t* incoming_state )
@@ -6813,8 +6651,6 @@ void player_t::target_mitigation( school_e school, result_amount_type dmg_type, 
   if ( buffs.stoneform && buffs.stoneform->up() )
     s->result_amount *= 1.0 + buffs.stoneform->data().effectN( 1 ).percent();
 
-  if ( buffs.fortitude && buffs.fortitude->up() )
-    s->result_amount *= 1.0 + buffs.fortitude->data().effectN( 1 ).percent();
 
   if ( s->action->is_aoe() )
     s->result_amount *= 1.0 - cache.avoidance();
@@ -6885,9 +6721,6 @@ void player_t::assess_heal( school_e, result_amount_type, action_state_t* s )
   // and other effects based on raw healing.
   if ( buffs.guardian_spirit->up() )
     s->result_total *= 1.0 + buffs.guardian_spirit->data().effectN( 1 ).percent();
-
-  if ( buffs.blessing_of_spring->up() )
-    s->result_total *= 1.0 + buffs.blessing_of_spring->data().effectN( 2 ).percent();
 
   // process heal
   s->result_amount = resource_gain( RESOURCE_HEALTH, s->result_total, nullptr, s->action );
@@ -8869,12 +8702,6 @@ action_t* player_t::create_action( util::string_view name, const std::string& op
   if ( name == "retarget_auto_attack" )
     return new retarget_auto_attack_t( this, options_str );
 
-  if ( auto action = azerite::create_action( this, name, options_str ) )
-    return action;
-
-  if ( auto action = covenant::create_action( this, name, options_str ) )
-    return action;
-
   return consumable::create_action( this, name, options_str );
 }
 
@@ -9531,111 +9358,6 @@ const spell_data_t* player_t::find_mastery_spell( specialization_e s ) const
   }
 
   return spell_data_t::not_found();
-}
-
-azerite_power_t player_t::find_azerite_spell( unsigned id ) const
-{
-  if ( ! azerite )
-  {
-    return {};
-  }
-
-  return azerite -> get_power( id );
-}
-
-azerite_power_t player_t::find_azerite_spell( util::string_view name, bool tokenized ) const
-{
-  if ( ! azerite )
-  {
-    return {};
-  }
-
-  // Note, no const propagation here, so this works
-  return azerite -> get_power( name, tokenized );
-}
-
-azerite_essence_t player_t::find_azerite_essence( unsigned id ) const
-{
-  if ( !azerite_essence )
-  {
-    return { this };
-  }
-
-  return azerite_essence->get_essence( id );
-}
-
-azerite_essence_t player_t::find_azerite_essence( util::string_view name, bool tokenized ) const
-{
-  if ( !azerite_essence )
-  {
-    return { this };
-  }
-
-  return azerite_essence->get_essence( name, tokenized );
-}
-
-conduit_data_t player_t::find_conduit_spell( util::string_view name ) const
-{
-  if ( !covenant )
-  {
-    return {};
-  }
-
-  return covenant->get_conduit_ability( name );
-}
-
-const spell_data_t* player_t::find_soulbind_spell( util::string_view name ) const
-{
-  if ( !covenant )
-  {
-    return spell_data_t::not_found();
-  }
-
-  return covenant->get_soulbind_ability( name );
-}
-
-const spell_data_t* player_t::find_covenant_spell( util::string_view name ) const
-{
-  if ( !covenant )
-  {
-    return spell_data_t::not_found();
-  }
-
-  return covenant->get_covenant_ability( name );
-}
-
-item_runeforge_t player_t::find_runeforge_legendary( util::string_view name, bool tokenized ) const
-{
-  auto entries = runeforge_legendary_entry_t::find( name, dbc->ptr, tokenized );
-  if ( entries.empty() )
-  {
-    return item_runeforge_t::nil();
-  }
-
-  // 8/22/2020 - Removed spec filtering for now since these currently have no spec limitations in-game
-  //             May need to restore some logic at some point if Blizzard points to different spells per-spec
-
-  // Iterate over all items to find the bonus id on an item. Note that Simulationcraft
-  // currently does not enforce the item restrictions on the legendary bonuses. This is
-  // intentional to allow people who know what they are doing(tm) to override in-game
-  // rules.
-  const item_t* item = nullptr;
-  for ( const auto& i : items )
-  {
-    auto it = range::find( i.parsed.bonus_id, entries.front().bonus_id );
-    if ( it != i.parsed.bonus_id.end() )
-    {
-      item = &i;
-      break;
-    }
-  }
-
-  if ( item == nullptr )
-  {
-    return item_runeforge_t::not_found();
-  }
-
-  return { entries.front(), item };
 }
 
 /**
@@ -10443,26 +10165,6 @@ std::unique_ptr<expr_t> player_t::create_expression( util::string_view expressio
     }
   }
 
-  if ( splits[ 0 ] == "azerite" )
-  {
-    return azerite -> create_expression( splits );
-  }
-
-  if ( splits[ 0 ] == "essence" )
-  {
-    return azerite_essence->create_expression( splits );
-  }
-
-  if ( splits[ 0 ] == "soulbind" || splits[ 0 ] == "conduit" || splits[ 0 ] == "covenant" )
-  {
-    return covenant->create_expression( splits );
-  }
-
-  if ( auto expr = runeforge::create_expression( this, splits ) )
-  {
-    return expr;
-  }
-
   return sim->create_expression( expression_str );
 }
 
@@ -10755,36 +10457,6 @@ std::string player_t::create_profile( save_e stype )
       }
     }
 
-    if ( azerite )
-    {
-      std::string azerite_overrides = azerite -> overrides_str();
-      if ( ! azerite_overrides.empty() )
-      {
-        profile_str += "azerite_override=" + azerite_overrides + term;
-      }
-    }
-
-    if ( azerite_essence )
-    {
-      std::string azerite_essence_str = azerite_essence->option_str();
-      if ( !azerite_essence_str.empty() )
-      {
-        profile_str += "azerite_essences=" + azerite_essence_str + term;
-      }
-    }
-
-    if ( covenant )
-    {
-      if ( !covenant->covenant_option_str().empty() )
-      {
-        profile_str += covenant->covenant_option_str() + term;
-      }
-
-      if ( !covenant->soulbind_option_str().empty() )
-      {
-        profile_str += covenant->soulbind_option_str() + term;
-      }
-    }
   }
 
   if ( stype & SAVE_PLAYER )
@@ -11028,19 +10700,6 @@ void player_t::copy_from( player_t* source )
   source->recreate_talent_str(talent_format::UNCHANGED );
   parse_talent_url( sim, "talents", source->talents_str );
 
-  if ( azerite )
-  {
-    azerite -> copy_overrides( source -> azerite );
-  }
-  if ( azerite_essence )
-  {
-    azerite_essence -> copy_state( source -> azerite_essence );
-  }
-
-  if ( covenant )
-  {
-    covenant->copy_state( source->covenant );
-  }
 
   if ( source->dbc_override_ )
   {
@@ -11284,25 +10943,6 @@ void player_t::create_options()
   add_option( opt_external_buff_times( "external_buffs.blessing_of_spring", external_buffs.blessing_of_spring ) );
   add_option( opt_external_buff_times( "external_buffs.conquerors_banner", external_buffs.conquerors_banner ) );
 
-  // Azerite options
-  if ( ! is_enemy() && ! is_pet() )
-  {
-    add_option( opt_func( "azerite_override", std::bind( &azerite::azerite_state_t::parse_override,
-          azerite.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3 ) ) );
-    add_option( opt_func( "azerite_essences", std::bind( &azerite::azerite_essence_state_t::parse_azerite_essence,
-          azerite_essence.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3 ) ) );
-
-    if ( covenant )
-    {
-      covenant->register_options( this );
-    }
-
-    add_option( opt_func( "override.player.spell_data",
-        [ this ]( sim_t*, util::string_view, util::string_view value ) {
-          dbc_override_->parse( *dbc, value );
-          return true;
-        } ) );
-  }
 
   // Obsolete options
 
