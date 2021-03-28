@@ -252,104 +252,6 @@ public:
     const spell_data_t* dark_soul_instability;
   } talents;
 
-  //TODO: SL Beta - Traits and Essences can be removed once SL launches
-  // Azerite traits
-  struct azerite_t
-  {
-    // Shared
-    azerite_power_t desperate_power;  // healing
-    azerite_power_t lifeblood;        // healing
-
-    // Demo
-    azerite_power_t demonic_meteor;
-    azerite_power_t shadows_bite;
-    azerite_power_t supreme_commander;
-    azerite_power_t umbral_blaze;
-    azerite_power_t explosive_potential;
-    azerite_power_t baleful_invocation;
-
-    // Aff
-    azerite_power_t cascading_calamity;
-    azerite_power_t dreadful_calling;
-    azerite_power_t inevitable_demise;
-    azerite_power_t sudden_onset;
-    azerite_power_t wracking_brilliance;
-    azerite_power_t pandemic_invocation;
-
-    // Destro
-    azerite_power_t bursting_flare;
-    azerite_power_t chaotic_inferno;
-    azerite_power_t crashing_chaos;
-    azerite_power_t rolling_havoc;
-    azerite_power_t flashpoint;
-    azerite_power_t chaos_shards;
-  } azerite;
-
-  struct
-  {
-    azerite_essence_t memory_of_lucid_dreams;  // Memory of Lucid Dreams minor
-    azerite_essence_t vision_of_perfection;
-  } azerite_essence;
-
-  //TODO: SL Beta - Legendary, Conduit, and Covenant implementation is unchecked/incomplete. Replace this TODO with individual TODOs once audited
-  struct legendary_t
-  {
-    // Legendaries
-    // Cross-spec
-    item_runeforge_t claw_of_endereth;
-    item_runeforge_t relic_of_demonic_synergy; //TODO: SL Beta - Do pet and warlock procs share a single RPPM?
-    item_runeforge_t wilfreds_sigil_of_superior_summoning;
-    // Affliction
-    item_runeforge_t malefic_wrath;
-    item_runeforge_t perpetual_agony_of_azjaqir;
-    item_runeforge_t sacrolashs_dark_strike; //TODO: SL Beta - Check if slow effect (unimplemented atm) can proc anything important
-    item_runeforge_t wrath_of_consumption;
-    // Demonology
-    item_runeforge_t balespiders_burning_core;
-    item_runeforge_t forces_of_the_horned_nightmare;
-    item_runeforge_t grim_inquisitors_dread_calling;
-    item_runeforge_t implosive_potential;
-    // Destruction
-    item_runeforge_t cinders_of_the_azjaqir;
-    item_runeforge_t embers_of_the_diabolic_raiment;
-    item_runeforge_t madness_of_the_azjaqir;
-    item_runeforge_t odr_shawl_of_the_ymirjar;
-  } legendary;
-
-  struct conduit_t
-  {
-    // Conduits
-    // Covenant Abilities
-    conduit_data_t catastrophic_origin;   // Venthyr
-    conduit_data_t soul_eater;          // Night Fae
-    conduit_data_t fatal_decimation;  // Necrolord
-    conduit_data_t soul_tithe;            // Kyrian
-    // Affliction
-    conduit_data_t cold_embrace;
-    conduit_data_t corrupting_leer;
-    conduit_data_t focused_malignancy;
-    conduit_data_t rolling_agony;
-    // Demonology
-    conduit_data_t borne_of_blood;
-    conduit_data_t carnivorous_stalkers;
-    conduit_data_t fel_commando;
-    conduit_data_t tyrants_soul;
-    // Destruction
-    conduit_data_t ashen_remains;
-    conduit_data_t combusting_engine;
-    conduit_data_t duplicitous_havoc;
-    conduit_data_t infernal_brand;
-  } conduit;
-
-  struct covenant_t
-  {
-    // Covenant Abilities
-    const spell_data_t* decimating_bolt;        // Necrolord
-    const spell_data_t* impending_catastrophe;  // Venthyr
-    const spell_data_t* scouring_tithe;         // Kyrian
-    const spell_data_t* soul_rot;               // Night Fae
-  } covenant;
-
   // Mastery Spells
   struct mastery_spells_t
   {
@@ -872,23 +774,6 @@ public:
         make_event<sc_event_t>( *p()->sim, p(), as<int>( last_resource_cost ) );
       }
 
-      if ( p()->legendary.wilfreds_sigil_of_superior_summoning->ok() )
-      {
-        switch ( p()->specialization() )
-        {
-          case WARLOCK_AFFLICTION:
-            p()->cooldowns.darkglare->adjust( -last_resource_cost * p()->legendary.wilfreds_sigil_of_superior_summoning->effectN( 1 ).time_value(), false );
-            break;
-          case WARLOCK_DEMONOLOGY:
-            p()->cooldowns.demonic_tyrant->adjust( -last_resource_cost * p()->legendary.wilfreds_sigil_of_superior_summoning->effectN( 2 ).time_value(), false );
-            break;
-          case WARLOCK_DESTRUCTION:
-            p()->cooldowns.infernal->adjust( -last_resource_cost * p()->legendary.wilfreds_sigil_of_superior_summoning->effectN( 3 ).time_value(), false );
-            break;
-          default:
-            break;
-        }
-      }
     }
   }
 
@@ -919,8 +804,6 @@ public:
   {
     double m = spell_t::composite_ta_multiplier( s );
 
-    if ( p()->legendary.wrath_of_consumption.ok() && p()->buffs.wrath_of_consumption->check() && affected_by_woc )
-      m *= 1.0 + p()->buffs.wrath_of_consumption->check_stack_value();
 
     return m;
   }
@@ -979,8 +862,6 @@ public:
 
     if ( p()->specialization() == WARLOCK_DESTRUCTION && can_havoc )
     {
-        // SL - Conduit
-        base_aoe_multiplier *= p()->spec.havoc->effectN(1).percent() + p()->conduit.duplicitous_havoc.percent();
         p()->havoc_spells.push_back(this);
     }
   }

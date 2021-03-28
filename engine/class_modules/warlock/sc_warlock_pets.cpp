@@ -53,8 +53,6 @@ void warlock_pet_t::create_buffs()
                        o()->resource_gain( RESOURCE_SOUL_SHARD, 0.1, o()->gains.infernal );
                      } );
 
-  buffs.demonic_synergy = make_buff( this, "demonic_synergy", find_spell( 337060 ) )
-                              ->set_default_value( o()->legendary.relic_of_demonic_synergy->effectN( 1 ).base_value() );
 }
 
 void warlock_pet_t::init_base_stats()
@@ -102,18 +100,6 @@ void warlock_pet_t::init_special_effects()
 {
   pet_t::init_special_effects();
 
-  if ( o()->legendary.relic_of_demonic_synergy->ok() && is_main_pet )
-  {
-    auto const syn_effect = new special_effect_t( this );
-    syn_effect->name_str = "demonic_synergy_pet_effect";
-    syn_effect->spell_id = 337057;
-    syn_effect->custom_buff = o()->buffs.demonic_synergy;
-    special_effects.push_back( syn_effect );
-
-    auto cb = new dbc_proc_callback_t( this, *syn_effect );
-
-    cb->initialize();
-  }
 }
 
 void warlock_pet_t::create_buffs_demonology()
@@ -158,12 +144,6 @@ double warlock_pet_t::composite_player_multiplier( school_e school ) const
 
   m *= 1.0 + buffs.grimoire_of_service->check_value();
 
-  if ( pet_type == PET_FELGUARD && o()->conduit.fel_commando->ok() )
-    m *= 1.0 + o()->conduit.fel_commando.percent();
-
-  if ( pet_type == PET_DREADSTALKER && o()->legendary.grim_inquisitors_dread_calling->ok() )
-    m *= 1.0 + buffs.grim_inquisitors_dread_calling->check_value();
-
   m *= 1.0 + buffs.demonic_synergy->check_stack_value();
 
   return m;
@@ -172,8 +152,7 @@ double warlock_pet_t::composite_player_multiplier( school_e school ) const
 warlock_pet_td_t::warlock_pet_td_t( player_t* target, warlock_pet_t& p ) :
   actor_target_data_t( target, &p ), pet( p )
 {
-  debuff_infernal_brand = make_buff( *this, "infernal_brand", pet.o()->find_spell( 340045 ) )
-                              ->set_default_value( pet.o()->find_conduit_spell( "Infernal Brand" ).percent() );
+  
 }
 
 namespace pets
@@ -845,16 +824,6 @@ struct dreadstalker_melee_t : warlock_pet_melee_t
   {
     warlock_pet_melee_t::execute();
 
-    if ( p()->o()->conduit.carnivorous_stalkers.ok() && rng().roll( p()->o()->conduit.carnivorous_stalkers.percent() ) )
-    {
-      p()->dreadbite_executes++;
-      p()->o()->procs.carnivorous_stalkers->occur();
-      if ( p()->readying )
-      {
-        event_t::cancel( p()->readying );
-        p()->schedule_ready();
-      }
-    }
   }
 };
 
@@ -897,8 +866,6 @@ void dreadstalker_t::demise()
     o()->buffs.demonic_core->trigger( 1, buff_t::DEFAULT_VALUE(), o()->spec.demonic_core->effectN( 2 ).percent() );
     expansion::bfa::trigger_leyshocks_grand_compilation( STAT_HASTE_RATING, o() );
     expansion::bfa::trigger_leyshocks_grand_compilation( STAT_VERSATILITY_RATING, o() );
-    if ( o()->azerite.shadows_bite.ok() )
-      o()->buffs.shadows_bite->trigger();
   }
 
   warlock_pet_t::demise();
@@ -977,8 +944,6 @@ struct demonfire_t : public warlock_pet_spell_t
   {
     double da = warlock_pet_spell_t::bonus_da( s );
 
-    da += p()->o()->azerite.baleful_invocation.value( 1 );
-
     if ( p()->buffs.demonic_consumption->check() )
     {
       da += p()->buffs.demonic_consumption->check_value();
@@ -1002,23 +967,7 @@ void demonic_tyrant_t::init_base_stats()
 
 void demonic_tyrant_t::demise()
 {
-  if ( !current.sleeping )
-  {
-    if ( o()->azerite.supreme_commander.ok() )
-    {
-      o()->buffs.demonic_core->trigger( 1 );
-      expansion::bfa::trigger_leyshocks_grand_compilation( STAT_HASTE_RATING, o() );
-      expansion::bfa::trigger_leyshocks_grand_compilation( STAT_VERSATILITY_RATING, o() );
-      o()->buffs.supreme_commander->trigger();
-    }
-
-    if ( o()->conduit.tyrants_soul.value() > 0 )
-    {
-      o()->buffs.demonic_core->trigger( 1 );
-      o()->buffs.tyrants_soul->trigger();
-    }
-  }
-
+  
   warlock_pet_t::demise();
 }
 
@@ -1520,10 +1469,6 @@ struct infernal_melee_t : warlock_pet_melee_t
   {
     warlock_pet_melee_t::impact( s );
 
-    if ( p()->o()->conduit.infernal_brand.ok() )
-    {
-      pet_td( s->target )->debuff_infernal_brand->trigger();
-    }
   }
 };
 

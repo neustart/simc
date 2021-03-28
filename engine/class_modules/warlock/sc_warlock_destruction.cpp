@@ -57,9 +57,6 @@ public:
   {
     warlock_spell_t::execute();
 
-    // BFA - Azerite
-    if ( can_havoc && num_targets_hit > 1 && p()->azerite.rolling_havoc.enabled() )
-      p()->buffs.rolling_havoc->trigger();
   }
 
   void impact( action_state_t* s ) override
@@ -221,9 +218,6 @@ struct havoc_t : public destruction_spell_t
 
     td( s->target )->debuffs_havoc->trigger();
 
-    // SL - Legendary
-    if ( p()->legendary.odr_shawl_of_the_ymirjar->ok() )
-      td( s->target )->debuffs_odr->trigger();
   }
 };
 
@@ -255,14 +249,7 @@ struct immolate_t : public destruction_spell_t
 
     p()->resource_gain( RESOURCE_SOUL_SHARD, 0.1, p()->gains.immolate );
 
-    // BFA - Azerite
-    if ( d->state->result_amount > 0.0 && p()->azerite.flashpoint.ok() &&
-         d->target->health_percentage() > p()->flashpoint_threshold * 100 )
-      p()->buffs.flashpoint->trigger();
-
-    // BFA - Trinket
-    // For some reason this triggers on every tick
-    expansion::bfa::trigger_leyshocks_grand_compilation( STAT_CRIT_RATING, p() );
+    
   }
 
   void last_tick( dot_t* d ) override
@@ -307,11 +294,6 @@ struct conflagrate_t : public destruction_spell_t
 
     cooldown->charges += as<int>( p->spec.conflagrate_2->effectN( 1 ).base_value() );
 
-    if ( p->legendary.cinders_of_the_azjaqir->ok() )
-    {
-      cooldown->charges += as<int>( p->legendary.cinders_of_the_azjaqir->effectN( 1 ).base_value() );
-      cooldown->duration += p->legendary.cinders_of_the_azjaqir->effectN( 2 ).time_value();
-    }
   }
 
   void init() override
@@ -328,9 +310,6 @@ struct conflagrate_t : public destruction_spell_t
     if ( p()->talents.roaring_blaze->ok() && result_is_hit( s->result ) )
       td( s->target )->debuffs_roaring_blaze->trigger();
 
-    //TODO: Check if combusting engine stacks up when there is no immolate on the target (currently implemented as NO)
-    if ( p()->conduit.combusting_engine.value() > 0 && result_is_hit( s->result ) && td( s->target )->dots_immolate->is_ticking() )
-      td( s->target )->debuffs_combusting_engine->increment( 1, td( s->target)->debuffs_combusting_engine->default_value );
   }
 
   void execute() override
@@ -339,11 +318,6 @@ struct conflagrate_t : public destruction_spell_t
 
     p()->buffs.backdraft->trigger(
         as<int>( 1 + ( p()->talents.flashover->ok() ? p()->talents.flashover->effectN( 1 ).base_value() : 0 ) ) );
-
-    // BFA - Azerite
-    auto td = this->td( target );
-    if ( p()->azerite.bursting_flare.ok() && td->dots_immolate->is_ticking() )
-      p()->buffs.bursting_flare->trigger();
 
     sim->print_log( "{}: Action {} {} charges remain", player->name(), name(), this->cooldown->current_charge );
   }
@@ -376,7 +350,6 @@ struct incinerate_fnb_t : public destruction_spell_t
       energize_type     = action_energize::PER_HIT;
       energize_resource = RESOURCE_SOUL_SHARD;
       energize_amount   = ( p->talents.fire_and_brimstone->effectN( 2 ).base_value() ) / 10.0;
-      energize_mult = 1.0 + ( p->legendary.embers_of_the_diabolic_raiment->ok() ? p->legendary.embers_of_the_diabolic_raiment->effectN( 1 ).percent() : 0.0 );
 
       energize_amount *= energize_mult;
 
@@ -397,9 +370,7 @@ struct incinerate_fnb_t : public destruction_spell_t
   {
     double da = destruction_spell_t::bonus_da( s );
 
-    // BFA - Azerite
-    da += p()->azerite.chaos_shards.value( 2 );
-
+    
     return da;
   }
 
@@ -449,10 +420,7 @@ struct incinerate_fnb_t : public destruction_spell_t
 
     auto td = this->td( t );
 
-    // SL - Conduit
-    // TOCHECK - Couldn't find affected_by spelldata to reference the spells 08-24-2020.
-    if ( td->dots_immolate->is_ticking() && p()->conduit.ashen_remains->ok() )
-      m *= 1.0 + p()->conduit.ashen_remains.percent();
+    
 
     return m;
   }
@@ -489,7 +457,6 @@ struct incinerate_t : public destruction_spell_t
     energize_type     = action_energize::PER_HIT;
     energize_resource = RESOURCE_SOUL_SHARD;
     energize_amount   = ( p->find_spell( 244670 )->effectN( 1 ).base_value() ) / 10.0;
-    energize_mult     = 1.0 + ( p->legendary.embers_of_the_diabolic_raiment->ok() ? p->legendary.embers_of_the_diabolic_raiment->effectN( 1 ).percent() : 0.0 );
 
     energize_amount *= energize_mult;
   }
@@ -497,9 +464,6 @@ struct incinerate_t : public destruction_spell_t
   double bonus_da( const action_state_t* s ) const override
   {
     double da = destruction_spell_t::bonus_da( s );
-
-    // BFA - Azerite
-    da += p()->azerite.chaos_shards.value( 2 );
 
     return da;
   }
@@ -574,9 +538,6 @@ struct incinerate_t : public destruction_spell_t
 
     auto td = this->td( t );
 
-    // SL - Conduit
-    if ( td->dots_immolate->is_ticking() && p()->conduit.ashen_remains->ok() )
-      m *= 1.0 + p()->conduit.ashen_remains.percent();
 
     return m;
   }
@@ -674,10 +635,6 @@ struct chaos_bolt_t : public destruction_spell_t
 
     auto td = this->td( t );
 
-    // SL - Conduit
-    // TOCHECK - Couldn't find affected_by spelldata to reference the spells 08-24-2020.
-    if ( td->dots_immolate->is_ticking() && p()->conduit.ashen_remains->ok() )
-      m *= 1.0 + p()->conduit.ashen_remains.percent();
 
     return m;
   }
@@ -728,17 +685,6 @@ struct chaos_bolt_t : public destruction_spell_t
   {
     destruction_spell_t::execute();
 
-    // BFA - Azerite
-    if ( p()->azerite.chaotic_inferno.ok() )
-      p()->buffs.chaotic_inferno->trigger();
-
-    p()->buffs.crashing_chaos->decrement();
-    p()->buffs.crashing_chaos_vop->decrement();
-    p()->buffs.backdraft->decrement();
-
-    // SL - Legendary
-    if ( p()->legendary.madness_of_the_azjaqir->ok() )
-      p()->buffs.madness_of_the_azjaqir->trigger();
   }
 
   // Force spell to always crit
@@ -750,10 +696,7 @@ struct chaos_bolt_t : public destruction_spell_t
   double bonus_da( const action_state_t* s ) const override
   {
     double da = destruction_spell_t::bonus_da( s );
-    // BFA - Azerite
-    da += p()->azerite.chaotic_inferno.value( 2 );
-    da += p()->buffs.crashing_chaos->check_value();
-    da += p()->buffs.crashing_chaos_vop->check_value();
+    
     return da;
   }
 
@@ -800,11 +743,6 @@ struct summon_infernal_t : public destruction_spell_t
     infernal_awakening->stats = stats;
     radius                    = infernal_awakening->radius;
 
-    // BFA - Azerite
-    if ( p->azerite.crashing_chaos.ok() )
-      cooldown->duration += p->find_spell( 277705 )->effectN( 2 ).time_value();
-    // BFA - Essence
-    cooldown->duration *= 1.0 + azerite::vision_of_perfection_cdr( p->azerite_essence.vision_of_perfection );
   }
 
   void execute() override
@@ -828,13 +766,6 @@ struct summon_infernal_t : public destruction_spell_t
       p()->buffs.rain_of_chaos->trigger();
     }
 
-    // BFA - Azerite
-    if ( p()->azerite.crashing_chaos.ok() )
-    {
-      // Cancel the Vision of Perfection version if necessary
-      p()->buffs.crashing_chaos_vop->expire();
-      p()->buffs.crashing_chaos->trigger( p()->buffs.crashing_chaos->max_stack() );
-    }
   }
 
   timespan_t travel_time() const override
@@ -1143,34 +1074,7 @@ void warlock_t::create_buffs_destruction()
                                     ->add_invalidate( CACHE_CRIT_CHANCE )
                                     ->set_default_value( talents.dark_soul_instability->effectN( 1 ).percent() );
 
-  // BFA - Azerite
-  buffs.bursting_flare = make_buff<stat_buff_t>( this, "bursting_flare", find_spell( 279913 ) )
-                             ->add_stat( STAT_MASTERY_RATING, azerite.bursting_flare.value() );
-  buffs.chaotic_inferno = make_buff( this, "chaotic_inferno", find_spell( 279673 ) )
-                              ->set_default_value( find_spell( 279673 )->effectN( 1 ).percent() )
-                              ->set_chance( find_spell( 279672 )->proc_chance() );
-  buffs.crashing_chaos =
-      make_buff( this, "crashing_chaos", find_spell( 277706 ) )->set_default_value( azerite.crashing_chaos.value() );
-  buffs.crashing_chaos_vop =
-      make_buff( this, "crashing_chaos_vop", find_spell( 277706 ) )
-          ->set_default_value( azerite.crashing_chaos.value() * vision_of_perfection_multiplier );
-  buffs.rolling_havoc = make_buff<stat_buff_t>( this, "rolling_havoc", find_spell( 278931 ) )
-                            ->add_stat( STAT_INTELLECT, azerite.rolling_havoc.value() );
-  buffs.flashpoint = make_buff<stat_buff_t>( this, "flashpoint", find_spell( 275429 ) )
-                         ->add_stat( STAT_HASTE_RATING, azerite.flashpoint.value() );
-  // TOCHECK What happens when we get 2 procs within 2 seconds?
-  buffs.chaos_shards =
-      make_buff<stat_buff_t>( this, "chaos_shards", find_spell( 287660 ) )
-          ->set_period( find_spell( 287660 )->effectN( 1 ).period() )
-          ->set_tick_zero( true )
-          ->set_tick_callback( [ this ]( buff_t* b, int, timespan_t ) {
-            resource_gain( RESOURCE_SOUL_SHARD, b->data().effectN( 1 ).base_value() / 10.0, gains.chaos_shards );
-          } );
-
-  // Legendaries
-  buffs.madness_of_the_azjaqir =
-      make_buff( this, "madness_of_the_azjaqir", legendary.madness_of_the_azjaqir->effectN( 1 ).trigger() )
-          ->set_trigger_spell( legendary.madness_of_the_azjaqir );
+  
 }
 
 void warlock_t::vision_of_perfection_proc_destro()
@@ -1185,12 +1089,6 @@ void warlock_t::vision_of_perfection_proc_destro()
 
   warlock_pet_list.vop_infernals.spawn( summon_duration, 1U );
 
-  // BFA - Azerite
-  if ( azerite.crashing_chaos.ok() )
-  {
-    buffs.crashing_chaos->expire();
-    buffs.crashing_chaos_vop->trigger( buffs.crashing_chaos_vop->max_stack() );
-  }
 
   if ( talents.rain_of_chaos->ok() )
   {
@@ -1231,25 +1129,6 @@ void warlock_t::init_spells_destruction()
   talents.channel_demonfire     = find_talent_spell( "Channel Demonfire" );
   talents.dark_soul_instability = find_talent_spell( "Dark Soul: Instability" );
 
-  // Azerite
-  azerite.bursting_flare  = find_azerite_spell( "Bursting Flare" );
-  azerite.chaotic_inferno = find_azerite_spell( "Chaotic Inferno" );
-  azerite.crashing_chaos  = find_azerite_spell( "Crashing Chaos" );
-  azerite.rolling_havoc   = find_azerite_spell( "Rolling Havoc" );
-  azerite.flashpoint      = find_azerite_spell( "Flashpoint" );
-  azerite.chaos_shards    = find_azerite_spell( "Chaos Shards" );
-
-  // Legendaries
-  legendary.cinders_of_the_azjaqir         = find_runeforge_legendary( "Cinders of the Azj'Aqir" );
-  legendary.embers_of_the_diabolic_raiment = find_runeforge_legendary( "Embers of the Diabolic Raiment" );
-  legendary.madness_of_the_azjaqir         = find_runeforge_legendary( "Madness of the Azj'Aqir" );
-  legendary.odr_shawl_of_the_ymirjar       = find_runeforge_legendary( "Odr, Shawl of the Ymirjar" );
-
-  // Conduits
-  conduit.ashen_remains     = find_conduit_spell( "Ashen Remains" );
-  conduit.combusting_engine = find_conduit_spell( "Combusting Engine" );
-  conduit.infernal_brand    = find_conduit_spell( "Infernal Brand" );
-  //conduit.duplicitous_havoc is done in main module
 }
 
 void warlock_t::init_gains_destruction()
