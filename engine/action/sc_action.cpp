@@ -1000,12 +1000,6 @@ double action_t::cost() const
 
   c -= player->current.resource_reduction[ get_school() ];
 
-  if ( cr == RESOURCE_MANA && player->buffs.courageous_primal_diamond_lucidity &&
-       player->buffs.courageous_primal_diamond_lucidity->check() )
-  {
-    c = 0;
-  }
-
   if ( c < 0 )
     c = 0;
 
@@ -2075,9 +2069,7 @@ void action_t::update_ready( timespan_t cd_duration /* = timespan_t::min() */ )
 
 bool action_t::usable_moving() const
 {
-  if ( player->buffs.norgannons_sagacity && player->buffs.norgannons_sagacity->check() )
-    return true;
-
+  
   if ( execute_time() > timespan_t::zero() )
     return false;
 

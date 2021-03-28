@@ -1053,8 +1053,6 @@ struct holy_power_consumer_t : public Base
       c += ab::p() -> buffs.fires_of_justice -> data().effectN( 1 ).base_value();
     }
 
-    if ( this -> affected_by.the_magistrates_judgment && ab::p() -> buffs.the_magistrates_judgment -> up() )
-      c += ab::p() -> buffs.the_magistrates_judgment -> value();
 
     return std::max( c, 0.0 );
   }
@@ -1079,20 +1077,7 @@ struct holy_power_consumer_t : public Base
         !p -> buffs.divine_purpose -> up() && !p -> buffs.shining_light_free -> up() )
       num_stacks = as<int>( hp_used );
 
-    // as of 2020-11-08 magistrate's causes *extra* stacks?
-    // fixed at least for ret as of 9.0.5
-    if ( p -> bugs && p -> buffs.the_magistrates_judgment -> up() )
-    {
-      if ( p -> specialization() == PALADIN_PROTECTION &&
-          is_wog && !p -> buffs.divine_purpose -> up() &&
-          ( p -> buffs.shining_light_free -> up() || p -> buffs.royal_decree -> up() ) )
-        num_stacks += 1;
-    }
-
-    if ( p -> azerite.relentless_inquisitor.ok() )
-      p -> buffs.relentless_inquisitor_azerite -> trigger( num_stacks );
-
-    
+       
     if ( p -> buffs.crusade -> check() )
     {
       p -> buffs.crusade -> trigger( num_stacks );
@@ -1146,12 +1131,7 @@ struct holy_power_consumer_t : public Base
     if ( is_wog && p -> buffs.royal_decree -> up() )
       p -> buffs.royal_decree -> expire();
 
-    // For prot (2020-11-01). Magistrate's does not get consumed when DP is up.
-    // For ret (2020-10-29), Magistrate's does not get consumed with DP or EP up but does
-    // with FoJ.
-    if ( this -> affected_by.the_magistrates_judgment && !p -> buffs.divine_purpose -> up() && should_continue )
-      p -> buffs.the_magistrates_judgment -> decrement( 1 );
-
+ 
     if ( is_wog && p -> buffs.shining_light_free -> up() )
     {
       // Shining Light is now consumed before Divine Purpose 2020-11-01
@@ -1159,7 +1139,7 @@ struct holy_power_consumer_t : public Base
       should_continue = false;
     }
     else if ( p -> bugs && p -> specialization() == PALADIN_PROTECTION &&
-      ( ab::background || ( is_wog && p -> buffs.vanquishers_hammer -> up () ) ) )
+      ( ab::background || ( is_wog ) ) )
     {
       // Vanquisher's Hammer's auto-sotr is not consuming divine purpose.
       // Vanquisher's Hammer's wog is not consuming divine purpose for some reason.

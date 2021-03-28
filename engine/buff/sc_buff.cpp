@@ -3073,17 +3073,6 @@ absorb_buff_t* absorb_buff_t::set_absorb_eligibility( absorb_eligibility e )
 
 bool movement_buff_t::trigger( int stacks, double value, double chance, timespan_t duration )
 {
-  if ( player->buffs.norgannons_sagacity_stacks )
-  {
-    auto sagacity = player->buffs.norgannons_sagacity_stacks->check();
-
-    if ( sagacity )
-    {
-      player->buffs.norgannons_sagacity_stacks->expire();
-      player->buffs.norgannons_sagacity->buff_duration_multiplier = sagacity;
-      player->buffs.norgannons_sagacity->trigger();
-    }
-  }
 
   return buff_t::trigger( stacks, value, chance, duration );
 }

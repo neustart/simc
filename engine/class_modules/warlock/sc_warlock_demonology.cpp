@@ -108,9 +108,6 @@ struct shadow_bolt_t : public demonology_spell_t
 
     if ( p()->talents.demonic_calling->ok() )
       p()->buffs.demonic_calling->trigger();
-
-    if ( p()->legendary.balespiders_burning_core->ok() )
-      p()->buffs.balespiders_burning_core->trigger();
   }
 
   double action_multiplier() const override
@@ -132,7 +129,6 @@ struct hand_of_guldan_t : public demonology_spell_t
   {
     umbral_blaze_t( warlock_t* p ) : demonology_spell_t( "Umbral Blaze", p, p->find_spell( 273526 ) )
     {
-      base_td      = p->azerite.umbral_blaze.value();  // BFA - Azerite
       hasted_ticks = false;
     }
   };
@@ -157,20 +153,13 @@ struct hand_of_guldan_t : public demonology_spell_t
 
       parse_effect_data( s_data->effectN( 1 ) );
 
-      // BFA - Azerite
-      if ( p->azerite.umbral_blaze.ok() )
-        add_child( blaze );
     }
 
     void execute() override
     {
       demonology_spell_t::execute();
 
-      if ( p()->legendary.forces_of_the_horned_nightmare.ok() && rng().roll( p()->legendary.forces_of_the_horned_nightmare->effectN( 1 ).percent() ) )
-      {
-        p()->procs.horned_nightmare->occur();
-        execute(); //TOCHECK: can the proc spawn additional procs? currently implemented as YES
-      }
+      
     }
 
     timespan_t travel_time() const override
@@ -181,8 +170,6 @@ struct hand_of_guldan_t : public demonology_spell_t
     double bonus_da( const action_state_t* s ) const override
     {
       double da = demonology_spell_t::bonus_da( s );
-      // BFA - Azerite
-      da += p()->azerite.demonic_meteor.value();
       return da;
     }
 
@@ -203,21 +190,14 @@ struct hand_of_guldan_t : public demonology_spell_t
       // Still keep it in impact instead of execute because of travel delay.
       if ( result_is_hit( s->result ) && s->target == target )
       {
-        // BFA - Trinket
-        expansion::bfa::trigger_leyshocks_grand_compilation( STAT_HASTE_RATING, p() );
-
+        
         for ( int i = 1; i <= shards_used; i++ )
         {
           auto ev = make_event<imp_delay_event_t>( *sim, p(), rng().gauss( 400.0 * i, 50.0 ), 400.0 * i );
           this->p()->wild_imp_spawns.push_back( ev );
         }
 
-        // BFA - Azerite
-        if ( p()->azerite.umbral_blaze.ok() && rng().roll( p()->find_spell( 273524 )->proc_chance() ) )
-        {
-          blaze->set_target( target );
-          blaze->execute();
-        }
+        
       }
     }
   };
