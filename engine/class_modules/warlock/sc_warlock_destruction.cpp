@@ -860,15 +860,7 @@ struct channel_demonfire_tick_t : public destruction_spell_t
   {
     destruction_spell_t::impact( s );
 
-    // BFA - Trinket
-    if ( s->chain_target == 0 )
-    {
-      expansion::bfa::trigger_leyshocks_grand_compilation( STAT_MASTERY_RATING, p() );
-    }
-    else
-    {
-      expansion::bfa::trigger_leyshocks_grand_compilation( STAT_CRIT_RATING, p() );
-    }
+    
   }
 };
 

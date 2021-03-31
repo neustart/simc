@@ -1036,7 +1036,6 @@ struct imp_delay_event_t : public player_event_t
     warlock_t* p = static_cast<warlock_t*>( player() );
 
     p->warlock_pet_list.wild_imps.spawn();
-    expansion::bfa::trigger_leyshocks_grand_compilation( STAT_HASTE_RATING, p );
 
     // Remove this event from the vector
     auto it = std::find( p->wild_imp_spawns.begin(), p->wild_imp_spawns.end(), this );

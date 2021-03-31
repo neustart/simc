@@ -27,7 +27,6 @@ paladin_t::paladin_t( sim_t* sim, util::string_view name, race_e r ) :
   talents( talents_t() ),
   options( options_t() ),
   beacon_target( nullptr ),
-  lucid_dreams_accumulator( 0.0 ),
   next_season( SUMMER )
 {
   active_consecration = nullptr;
@@ -1217,32 +1216,6 @@ void paladin_t::trigger_forbearance( player_t* target )
   buff -> trigger();
 }
 
-void paladin_t::trigger_memory_of_lucid_dreams( double cost )
-{
-  if ( cost <= 0 )
-    return;
-
-  if ( specialization() == PALADIN_RETRIBUTION || specialization() == PALADIN_PROTECTION ) {
-    if ( ! rng().roll( options.proc_chance_ret_memory_of_lucid_dreams ) )
-      return;
-
-    double total_gain = lucid_dreams_accumulator + cost * lucid_dreams_minor_refund_coeff;
-
-    // mserrano note: apparently when you get a proc on a 1-holy-power spender, if it did proc,
-    // you always get 1 holy power instead of alternating between 0 and 1. This is based on
-    // Skeletor's PTR testing; should revisit this periodically.
-    if ( cost == 1 && total_gain < 1 ) {
-      total_gain = 1;
-    }
-
-    double real_gain = floor( total_gain );
-
-    lucid_dreams_accumulator = total_gain - real_gain;
-
-    resource_gain( RESOURCE_HOLY_POWER, real_gain, gains.hp_memory_of_lucid_dreams );
-  }
-}
-
 
 int paladin_t::get_local_enemies( double distance ) const
 {
@@ -1328,7 +1301,6 @@ void paladin_t::init_gains()
   gains.hp_templars_verdict_refund  = get_gain( "templars_verdict_refund" );
   gains.judgment                    = get_gain( "judgment" );
   gains.hp_cs                       = get_gain( "crusader_strike" );
-  gains.hp_memory_of_lucid_dreams   = get_gain( "memory_of_lucid_dreams" );
 }
 
 // paladin_t::init_procs ====================================================
@@ -1340,7 +1312,6 @@ void paladin_t::init_procs()
   procs.art_of_war                = get_proc( "Art of War"        );
   procs.divine_purpose            = get_proc( "Divine Purpose"    );
   procs.fires_of_justice          = get_proc( "Fires of Justice"  );
-  procs.prot_lucid_dreams         = get_proc( "Lucid Dreams SotR" );
   procs.final_reckoning           = get_proc( "Final Reckoning"   );
   procs.empyrean_power            = get_proc( "Empyrean Power"    );
 
@@ -2089,15 +2060,7 @@ double paladin_t::resource_gain( resource_e resource_type, double amount, gain_t
 {
   if ( resource_type == RESOURCE_HOLY_POWER )
   {
-    if ( specialization() == PALADIN_RETRIBUTION || specialization() == PALADIN_PROTECTION )
-    {
-      if ( player_t::buffs.memory_of_lucid_dreams -> up() )
-      {
-        amount *= 1.0 + player_t::buffs.memory_of_lucid_dreams -> data().effectN( 1 ).percent();
-      }
-
-    }
-
+   
     if ( buffs.holy_avenger -> up() )
     {
       amount *= 1.0 + buffs.holy_avenger -> data().effectN( 1 ).percent();
@@ -2208,8 +2171,6 @@ void paladin_t::create_options()
   // TODO: figure out a better solution for this.
   add_option( opt_bool( "paladin_fake_sov", options.fake_sov ) );
   add_option( opt_int( "indomitable_justice_pct", options.indomitable_justice_pct ) );
-  add_option( opt_float( "proc_chance_ret_memory_of_lucid_dreams", options.proc_chance_ret_memory_of_lucid_dreams, 0.0, 1.0 ) );
-  add_option( opt_float( "proc_chance_prot_memory_of_lucid_dreams", options.proc_chance_prot_memory_of_lucid_dreams, 0.0, 1.0 ) );
 
   player_t::create_options();
 }
@@ -2236,7 +2197,6 @@ void paladin_t::combat_begin()
     resource_loss( RESOURCE_HOLY_POWER, hp_overflow );
   }
 
-  lucid_dreams_accumulator = 0;
 
   // evidently it resets to summer on combat start
   next_season = SUMMER;

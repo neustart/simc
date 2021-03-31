@@ -538,11 +538,6 @@ struct shield_of_the_righteous_t : public holy_power_consumer_t<paladin_melee_at
   {
     double rm = holy_power_consumer_t::recharge_multiplier( cd );
 
-    if ( p() -> player_t::buffs.memory_of_lucid_dreams -> check() )
-    {
-      rm /= 1.0 + p() -> player_t::buffs.memory_of_lucid_dreams -> data().effectN( 1 ).percent();
-    }
-
     return rm;
   }
 
@@ -796,9 +791,6 @@ void paladin_t::create_buffs_protection()
   buffs.royal_decree = make_buff( this, "royal_decree", find_spell( 340147 ) );
   
 
-  if ( specialization() == PALADIN_PROTECTION )
-    player_t::buffs.memory_of_lucid_dreams -> set_stack_change_callback( [ this ]( buff_t*, int, int )
-    { this -> cooldowns.shield_of_the_righteous -> adjust_recharge_multiplier(); } );
 }
 
 void paladin_t::init_spells_protection()

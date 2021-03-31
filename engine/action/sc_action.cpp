@@ -1660,10 +1660,6 @@ void action_t::execute()
   if ( pre_execute_state )
     action_state_t::release( pre_execute_state );
 
-  if ( data().id() )
-  {
-    expansion::bfa::trigger_leyshocks_grand_compilation( data().id(), player );
-  }
 
   // The rest of the execution depends on actually executing on target. Note that execute_state
   // can be nullptr if there are not valid targets to hit on.

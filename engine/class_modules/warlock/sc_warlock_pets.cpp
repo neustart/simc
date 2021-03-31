@@ -760,8 +760,6 @@ void wild_imp_pet_t::demise()
     if ( !power_siphon )
     {
       o()->buffs.demonic_core->trigger( 1, buff_t::DEFAULT_VALUE(), o()->spec.demonic_core->effectN( 1 ).percent() );
-      expansion::bfa::trigger_leyshocks_grand_compilation( STAT_HASTE_RATING, o() );
-      expansion::bfa::trigger_leyshocks_grand_compilation( STAT_VERSATILITY_RATING, o() );
     }
 
     if ( expiration )
@@ -864,8 +862,6 @@ void dreadstalker_t::demise()
   {
     o()->buffs.dreadstalkers->decrement();
     o()->buffs.demonic_core->trigger( 1, buff_t::DEFAULT_VALUE(), o()->spec.demonic_core->effectN( 2 ).percent() );
-    expansion::bfa::trigger_leyshocks_grand_compilation( STAT_HASTE_RATING, o() );
-    expansion::bfa::trigger_leyshocks_grand_compilation( STAT_VERSATILITY_RATING, o() );
   }
 
   warlock_pet_t::demise();

@@ -6735,11 +6735,7 @@ double warrior_t::resource_gain( resource_e r, double a, gain_t* g, action_t* ac
     if ( !do_not_double_rage )  // FIXME: remove this horror after BFA launches, keep Simmering Rage
       a *= 1.0 + spec.recklessness->effectN( 4 ).percent();
   }
-  // Memory of Lucid Dreams
-  if ( buffs.memory_of_lucid_dreams->up() )
-  {
-    a *= 1.0 + buffs.memory_of_lucid_dreams->data().effectN( 1 ).percent();
-  }
+  
   return player_t::resource_gain( r, a, g, action );
 }
 

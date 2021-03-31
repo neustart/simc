@@ -435,42 +435,11 @@ struct player_t : public actor_t
     // Darkmoon Faire versatility food
     buff_t* dmf_well_fed;
 
-    // 8.0
-    buff_t* galeforce_striking; // Gale-Force Striking weapon enchant
-    buff_t* torrent_of_elements; // Torrent of Elements weapon enchant
+    //// Azerite power
+    //buff_t* normalization_increase;
 
-    // 8.0 - Leyshock's Grand Compendium stat buffs
-    buff_t* leyshock_crit;
-    buff_t* leyshock_haste;
-    buff_t* leyshock_mastery;
-    buff_t* leyshock_versa;
-
-    // Azerite power
-    buff_t* normalization_increase;
-
-    // Uldir
-    buff_t* reorigination_array;
-
-    /// 8.2 Azerite Essences
-    stat_buff_t* memory_of_lucid_dreams;
-    stat_buff_t* lucid_dreams; // Versatility Buff from Rank 3
-    buff_t* reckless_force; // The Unbound Force minor - crit chance
-    buff_t* reckless_force_counter; // The Unbound Force minor - max 20 stack counter
-    stat_buff_t* lifeblood; // Worldvein Resonance - grant primary stat per shard, max 4
-    buff_t* seething_rage; // Blood of the Enemy major - 25% crit dam
-    stat_buff_t* reality_shift; // Ripple in Space minor - primary stat on moving 25yds
-    buff_t* guardian_of_azeroth; // Condensed Life-Force major - R3 stacking haste on pet cast
-
-    // 8.2 misc
-    buff_t* damage_to_aberrations; // Benthic belt special effect
-    buff_t* fathom_hunter; // Follower themed Benthic boots special effect
-    buff_t* delirious_frenzy; // Dream's End 1H STR axe attack speed buff
-    buff_t* bioelectric_charge; // Diver's Folly 1H AGI axe buff to store damage
-    buff_t* razor_coral; // Ashvane's Razor Coral trinket crit rating buff
-
-    // 9.0 class buffs
-    buff_t* focus_magic; // Mage talent
-    buff_t* power_infusion; // Priest spell
+    //// Uldir
+    //buff_t* reorigination_array;
 
   } buffs;
 
@@ -764,7 +733,6 @@ public:
   virtual void init_professions();
   virtual void init_spells();
   virtual void init_items();
-  virtual void init_azerite(); /// Initialize azerite-related support structures for the actor
   virtual void init_weapon( weapon_t& );
   virtual void init_base_stats();
   virtual void init_initial_stats();

@@ -750,8 +750,6 @@ struct doom_t : public demonology_spell_t
   void tick( dot_t* d ) override
   {
     demonology_spell_t::tick( d );
-
-    expansion::bfa::trigger_leyshocks_grand_compilation( STAT_CRIT_RATING, p() );
   }
 };
 
@@ -1068,7 +1066,6 @@ void warlock_t::create_buffs_demonology()
                              {
                                active.summon_random_demon->execute();
                              }
-                             expansion::bfa::trigger_leyshocks_grand_compilation( STAT_MASTERY_RATING, this );
                            } );
 
   buffs.nether_portal =

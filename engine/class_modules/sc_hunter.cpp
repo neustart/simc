@@ -5504,7 +5504,6 @@ void hunter_t::create_options()
 
   add_option( opt_obsoleted( "hunter_fixed_time" ) );
   add_option( opt_obsoleted( "hunter.brutal_projectiles_on_execute" ) );
-  add_option( opt_obsoleted( "hunter.memory_of_lucid_dreams_proc_chance" ) );
   add_option( opt_obsoleted( "hunter.serpenstalkers_triggers_wild_spirits" ) );
 }
 

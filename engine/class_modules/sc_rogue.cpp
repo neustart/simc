@@ -456,7 +456,6 @@ public:
     const spell_data_t* killing_spree_mh;
     const spell_data_t* killing_spree_oh;
     const spell_data_t* master_of_shadows;
-    const spell_data_t* memory_of_lucid_dreams;
     const spell_data_t* nightstalker_dmg_amp;
     const spell_data_t* poison_bomb_driver;
     const spell_data_t* relentless_strikes_energize;

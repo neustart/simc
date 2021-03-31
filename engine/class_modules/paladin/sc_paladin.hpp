@@ -215,7 +215,6 @@ public:
     gain_t* hp_templars_verdict_refund;
     gain_t* judgment;
     gain_t* hp_cs;
-    gain_t* hp_memory_of_lucid_dreams;
   } gains;
 
   // Spec Passives
@@ -295,7 +294,6 @@ public:
     proc_t* divine_purpose;
     proc_t* fires_of_justice;
     proc_t* final_reckoning;
-    proc_t* prot_lucid_dreams;
     proc_t* empyrean_power;
 
     proc_t* as_grand_crusader;
@@ -411,15 +409,11 @@ public:
   // Paladin options
   struct options_t
   {
-    double proc_chance_ret_memory_of_lucid_dreams = 0.15;
-    double proc_chance_prot_memory_of_lucid_dreams = 0.15;
     bool fake_sov = true;
     int indomitable_justice_pct = 0;
   } options;
   player_t* beacon_target;
 
-  double lucid_dreams_accumulator;
-  double lucid_dreams_minor_refund_coeff;
 
   season next_season;
 
@@ -494,8 +488,6 @@ public:
   // This isn't in HoW's target_ready() so it can be used in the time_to_hpg expression
   bool    get_how_availability( player_t* t ) const;
 
-  void         trigger_memory_of_lucid_dreams( double cost );
-  virtual void vision_of_perfection_proc() override;
 
   std::unique_ptr<expr_t> create_consecration_expression( util::string_view expr_str );
 
@@ -1188,10 +1180,6 @@ struct holy_power_consumer_t : public Base
   {
     ab::consume_resource();
 
-    if ( ab::current_resource() == RESOURCE_HOLY_POWER)
-    {
-      ab::p() -> trigger_memory_of_lucid_dreams( ab::last_resource_cost );
-    }
   }
 };
 

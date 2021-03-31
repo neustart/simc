@@ -322,12 +322,8 @@ warlock_t::warlock_t( sim_t* sim, util::string_view name, race_e r )
     havoc_target( nullptr ),
     ua_target( nullptr ),
     havoc_spells(),
-    wracking_brilliance( false ),  // BFA - Azerite
     agony_accumulator( 0.0 ),
     corruption_accumulator( 0.0 ),
-    memory_of_lucid_dreams_accumulator( 0.0 ),  // BFA - Essence
-    strive_for_perfection_multiplier(),         // BFA - Essence
-    vision_of_perfection_multiplier(),          // BFA - Essence
     active_pets( 0 ),
     warlock_pet_list( this ),
     active(),
@@ -485,20 +481,9 @@ double warlock_t::resource_gain( resource_e resource_type, double amount, gain_t
 {
   if ( resource_type == RESOURCE_SOUL_SHARD )
   {
-    if ( player_t::buffs.memory_of_lucid_dreams->up() )  // BFA - Essence
-      amount *= 1.0 + player_t::buffs.memory_of_lucid_dreams->data().effectN( 1 ).percent();
 
     int current_soul_shards = (int)resources.current[ resource_type ];
-    // BFA - Trinket
-    if ( current_soul_shards % 2 == 0 )
-    {
-      expansion::bfa::trigger_leyshocks_grand_compilation( STAT_CRIT_RATING, this );
-    }
-    else
-    {
-      expansion::bfa::trigger_leyshocks_grand_compilation( STAT_VERSATILITY_RATING, this );
-    }
-
+ 
   }
 
   return player_t::resource_gain( resource_type, amount, source, action );
@@ -687,7 +672,6 @@ void warlock_t::init_gains()
   gains.scouring_tithe = get_gain( "souring_tithe" );
 
   gains.chaos_shards           = get_gain( "chaos_shards" );
-  gains.memory_of_lucid_dreams = get_gain( "memory_of_lucid_dreams" );
 }
 
 void warlock_t::init_procs()
@@ -916,7 +900,6 @@ void warlock_t::reset()
   ua_target                          = nullptr;
   agony_accumulator                  = rng().range( 0.0, 0.99 );
   corruption_accumulator             = rng().range( 0.0, 0.99 ); // TOCHECK - Unsure if it procs on application
-  memory_of_lucid_dreams_accumulator = 0.0;
   wild_imp_spawns.clear();
 }
 
@@ -1350,107 +1333,7 @@ struct warlock_module_t : public module_t
 
   void static_init() const override
   {
-    // BFA - Trinket
-    // Leyshock's!
-    // Shared spells
-    // Drain Life
-    expansion::bfa::register_leyshocks_trigger( 234153, STAT_HASTE_RATING );
-    // Burning Rush
-    expansion::bfa::register_leyshocks_trigger( 111400, STAT_CRIT_RATING );
-    // Mortal Coil
-    expansion::bfa::register_leyshocks_trigger( 6789, STAT_HASTE_RATING );
-    // Summon Demonic Circle
-    expansion::bfa::register_leyshocks_trigger( 268358, STAT_CRIT_RATING );
-    // Demonic Circle: Teleport
-    expansion::bfa::register_leyshocks_trigger( 48020, STAT_VERSATILITY_RATING );
-
-    // Affliction-specific spells
-    // Agony
-    expansion::bfa::register_leyshocks_trigger( 980, STAT_CRIT_RATING );
-    // Corruption
-    expansion::bfa::register_leyshocks_trigger( 172, STAT_VERSATILITY_RATING );
-    // Seed of Corruption
-    expansion::bfa::register_leyshocks_trigger( 27243, STAT_HASTE_RATING );
-    // Shadow Bolt
-    expansion::bfa::register_leyshocks_trigger( 232670, STAT_MASTERY_RATING );
-    // Darkglare
-    expansion::bfa::register_leyshocks_trigger( 205180, STAT_HASTE_RATING );
-    // Unstable Affliction
-    expansion::bfa::register_leyshocks_trigger( 233490, STAT_MASTERY_RATING );
-    expansion::bfa::register_leyshocks_trigger( 233496, STAT_HASTE_RATING );
-    expansion::bfa::register_leyshocks_trigger( 233497, STAT_CRIT_RATING );
-    expansion::bfa::register_leyshocks_trigger( 233498, STAT_MASTERY_RATING );
-    expansion::bfa::register_leyshocks_trigger( 233499, STAT_VERSATILITY_RATING );
-    // Dark Soul: Misery
-    expansion::bfa::register_leyshocks_trigger( 113860, STAT_CRIT_RATING );
-    // Haunt
-    expansion::bfa::register_leyshocks_trigger( 48181, STAT_HASTE_RATING );
-    // Vile Taint
-    expansion::bfa::register_leyshocks_trigger( 278350, STAT_HASTE_RATING );
-    // Phantom Singularity
-    expansion::bfa::register_leyshocks_trigger( 205179, STAT_CRIT_RATING );
-    expansion::bfa::register_leyshocks_trigger( 205246, STAT_MASTERY_RATING );
-    // Siphon Life
-    expansion::bfa::register_leyshocks_trigger( 63106, STAT_MASTERY_RATING );
-    // Deathbolt
-    expansion::bfa::register_leyshocks_trigger( 264106, STAT_MASTERY_RATING );
-
-    // Destruction
-    // Chaos Bolt
-    expansion::bfa::register_leyshocks_trigger( 116858, STAT_HASTE_RATING );
-    // Conflagrate
-    expansion::bfa::register_leyshocks_trigger( 17962, STAT_MASTERY_RATING );
-    // Havoc
-    expansion::bfa::register_leyshocks_trigger( 80240, STAT_CRIT_RATING );
-    // Immolate
-    expansion::bfa::register_leyshocks_trigger( 348, STAT_CRIT_RATING );
-    // Internal Combustion
-    expansion::bfa::register_leyshocks_trigger( 266134, STAT_CRIT_RATING );
-    // Incinerate
-    expansion::bfa::register_leyshocks_trigger( 29722, STAT_MASTERY_RATING );
-    // Rain of Fire
-    expansion::bfa::register_leyshocks_trigger( 5740, STAT_HASTE_RATING );
-    expansion::bfa::register_leyshocks_trigger( 42223, STAT_VERSATILITY_RATING );
-    // Infernal
-    expansion::bfa::register_leyshocks_trigger( 1122, STAT_HASTE_RATING );
-    expansion::bfa::register_leyshocks_trigger( 22703, STAT_VERSATILITY_RATING );
-    // Cataclysm
-    expansion::bfa::register_leyshocks_trigger( 152108, STAT_CRIT_RATING );
-    // Channel Demonfire
-    expansion::bfa::register_leyshocks_trigger( 196447, STAT_VERSATILITY_RATING );
-    // Dark Soul: Instability
-    expansion::bfa::register_leyshocks_trigger( 113858, STAT_MASTERY_RATING );
-    // Soul Fire
-    expansion::bfa::register_leyshocks_trigger( 6353, STAT_MASTERY_RATING );
-    // Shadowburn
-    expansion::bfa::register_leyshocks_trigger( 17877, STAT_VERSATILITY_RATING );
-
-    // Demonology
-    // Call Dreadstalkers
-    expansion::bfa::register_leyshocks_trigger( 104316, STAT_CRIT_RATING );
-    // Demonbolt
-    expansion::bfa::register_leyshocks_trigger( 264178, STAT_VERSATILITY_RATING );
-    // Hand of Gul'dan
-    expansion::bfa::register_leyshocks_trigger( 105174, STAT_CRIT_RATING );
-    // Implosion
-    expansion::bfa::register_leyshocks_trigger( 196277, STAT_HASTE_RATING );
-    // Demonic Tyrant
-    expansion::bfa::register_leyshocks_trigger( 265187, STAT_HASTE_RATING );
-    // Demonic Strength
-    expansion::bfa::register_leyshocks_trigger( 267171, STAT_VERSATILITY_RATING );
-    // Bilescourge Bombers
-    expansion::bfa::register_leyshocks_trigger( 267211, STAT_CRIT_RATING );
-    expansion::bfa::register_leyshocks_trigger( 267213, STAT_CRIT_RATING );
-    // Doom
-    expansion::bfa::register_leyshocks_trigger( 265412, STAT_CRIT_RATING );
-    // Soul Strike
-    expansion::bfa::register_leyshocks_trigger( 264057, STAT_VERSATILITY_RATING );
-    // Grimoire: felguard
-    expansion::bfa::register_leyshocks_trigger( 111898, STAT_HASTE_RATING );
-    // Nether Portal
-    expansion::bfa::register_leyshocks_trigger( 267217, STAT_MASTERY_RATING );
-    // Summon Vilefiend
-    expansion::bfa::register_leyshocks_trigger( 264119, STAT_HASTE_RATING );
+    
   }
 
   void register_hotfixes() const override

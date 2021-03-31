@@ -50,8 +50,6 @@ void beast_mastery( player_t* p )
   precombat -> add_action( "food" );
   precombat -> add_action( "summon_pet" );
   precombat -> add_action( "snapshot_stats", "Snapshot raid buffed stats before combat begins and pre-potting is done." );
-  precombat -> add_action( "tar_trap,precast_time=1.5,if=runeforge.soulforge_embers|runeforge.nessingwarys_trapping_apparatus" );
-  precombat -> add_action( "bestial_wrath,precast_time=1.5,if=!talent.scent_of_blood&!runeforge.soulforge_embers" );
 
   default_ -> add_action( "auto_shot" );
   default_ -> add_action( "use_items,slots=trinket1,if=trinket.1.has_use_buff&(buff.aspect_of_the_wild.up&(!trinket.2.has_use_buff|trinket.2.cooldown.remains|trinket.1.cooldown.duration>=trinket.2.cooldown.duration)|buff.aspect_of_the_wild.down&(trinket.2.has_use_buff&trinket.2.cooldown.duration>=trinket.1.cooldown.duration&trinket.2.cooldown.remains-5<cooldown.aspect_of_the_wild.remains&cooldown.aspect_of_the_wild.remains>20|trinket.1.cooldown.duration-5<cooldown.aspect_of_the_wild.remains)|target.time_to_die<cooldown.aspect_of_the_wild.remains)|!trinket.1.has_use_buff&(trinket.2.has_use_buff&(buff.aspect_of_the_wild.down|trinket.2.cooldown.remains>5)&(cooldown.aspect_of_the_wild.remains>20|trinket.2.cooldown.remains-5>cooldown.aspect_of_the_wild.remains)|!trinket.2.has_use_buff&(!trinket.2.has_cooldown|trinket.2.cooldown.duration>=trinket.1.cooldown.duration|trinket.2.cooldown.remains))",
@@ -71,10 +69,6 @@ void beast_mastery( player_t* p )
   cleave -> add_action( "aspect_of_the_wild" );
   cleave -> add_action( "barbed_shot,target_if=min:dot.barbed_shot.remains,if=pet.main.buff.frenzy.up&pet.main.buff.frenzy.remains<=gcd" );
   cleave -> add_action( "multishot,if=gcd-pet.main.buff.beast_cleave.remains>0.25" );
-  cleave -> add_action( "tar_trap,if=runeforge.soulforge_embers&tar_trap.remains<gcd&cooldown.flare.remains<gcd" );
-  cleave -> add_action( "flare,if=tar_trap.up&runeforge.soulforge_embers" );
-  cleave -> add_action( "death_chakram,if=focus+cast_regen<focus.max" );
-  cleave -> add_action( "wild_spirits" );
   cleave -> add_action( "barbed_shot,target_if=min:dot.barbed_shot.remains,if=full_recharge_time<gcd&cooldown.bestial_wrath.remains|cooldown.bestial_wrath.remains<12+gcd&talent.scent_of_blood" );
   cleave -> add_action( "bestial_wrath" );
   cleave -> add_action( "resonating_arrow" );
@@ -90,20 +84,15 @@ void beast_mastery( player_t* p )
   cleave -> add_action( "dire_beast" );
   cleave -> add_action( "barbed_shot,target_if=min:dot.barbed_shot.remains,if=target.time_to_die<9" );
   cleave -> add_action( "cobra_shot,if=focus.time_to_max<gcd*2" );
-  cleave -> add_action( "tar_trap,if=runeforge.soulforge_embers|runeforge.nessingwarys_trapping_apparatus" );
-  cleave -> add_action( "freezing_trap,if=runeforge.nessingwarys_trapping_apparatus" );
   cleave -> add_action( "arcane_torrent,if=(focus+focus.regen+30)<focus.max");
 
   st -> add_action( "aspect_of_the_wild" );
   st -> add_action( "barbed_shot,if=pet.main.buff.frenzy.up&pet.main.buff.frenzy.remains<=gcd" );
-  st -> add_action( "tar_trap,if=runeforge.soulforge_embers&tar_trap.remains<gcd&cooldown.flare.remains<gcd" );
-  st -> add_action( "flare,if=tar_trap.up&runeforge.soulforge_embers" );
   st -> add_action( "bloodshed" );
   st -> add_action( "wild_spirits" );
   st -> add_action( "flayed_shot" );
   st -> add_action( "kill_shot" );
   st -> add_action( "barbed_shot,if=cooldown.bestial_wrath.remains<12*charges_fractional+gcd&talent.scent_of_blood|full_recharge_time<gcd&cooldown.bestial_wrath.remains|target.time_to_die<9" );
-  st -> add_action( "death_chakram,if=focus+cast_regen<focus.max" );
   st -> add_action( "stampede,if=buff.aspect_of_the_wild.up|target.time_to_die<15" );
   st -> add_action( "a_murder_of_crows" );
   st -> add_action( "resonating_arrow,if=buff.bestial_wrath.up|target.time_to_die<10" );
@@ -115,8 +104,6 @@ void beast_mastery( player_t* p )
   st -> add_action( "cobra_shot,if=(focus-cost+focus.regen*(cooldown.kill_command.remains-1)>action.kill_command.cost|cooldown.kill_command.remains>1+gcd)|(buff.bestial_wrath.up|buff.nesingwarys_trapping_apparatus.up)&!runeforge.qapla_eredun_war_order|target.time_to_die<3" );
   st -> add_action( "barbed_shot,if=buff.wild_spirits.up" );
   st -> add_action( "arcane_pulse,if=buff.bestial_wrath.down|target.time_to_die<5" );
-  st -> add_action( "tar_trap,if=runeforge.soulforge_embers|runeforge.nessingwarys_trapping_apparatus" );
-  st -> add_action( "freezing_trap,if=runeforge.nessingwarys_trapping_apparatus" );
   st -> add_action( "arcane_torrent,if=(focus+focus.regen+15)<focus.max");
 }
 
@@ -132,10 +119,6 @@ void marksmanship( player_t* p )
   precombat -> add_action( "augmentation" );
   precombat -> add_action( "food" );
   precombat -> add_action( "snapshot_stats", "Snapshot raid buffed stats before combat begins and pre-potting is done." );
-  precombat -> add_action( "tar_trap,if=runeforge.soulforge_embers" );
-  precombat -> add_action( "double_tap,precast_time=10,if=active_enemies>1|!covenant.kyrian&!talent.volley" );
-  precombat -> add_action( "aimed_shot,if=active_enemies<3&(!covenant.kyrian&!talent.volley|active_enemies<2)" );
-  precombat -> add_action( "steady_shot,if=active_enemies>2|(covenant.kyrian|talent.volley)&active_enemies=2" );
 
   default_ -> add_action( "auto_shot" );
   default_ -> add_action( "use_items,slots=trinket1,if=trinket.1.has_use_buff&(buff.trueshot.up&(!trinket.2.has_use_buff|trinket.2.cooldown.remains|trinket.1.cooldown.duration>=trinket.2.cooldown.duration)|buff.trueshot.down&(trinket.2.has_use_buff&trinket.2.cooldown.duration>=trinket.1.cooldown.duration&trinket.2.cooldown.remains-5<cooldown.trueshot.remains&cooldown.trueshot.remains>20|trinket.1.cooldown.duration-5<cooldown.trueshot.remains)|target.time_to_die<cooldown.trueshot.remains)|!trinket.1.has_use_buff&(trinket.2.has_use_buff&(buff.trueshot.down|trinket.2.cooldown.remains>5)&(cooldown.trueshot.remains>20|trinket.2.cooldown.remains-5>cooldown.trueshot.remains)|!trinket.2.has_use_buff&(!trinket.2.has_cooldown|trinket.2.cooldown.duration>=trinket.1.cooldown.duration|trinket.2.cooldown.remains))",
@@ -344,15 +327,11 @@ void survival( player_t* p )
   cleave -> add_action( "wild_spirits" );
   cleave -> add_action( "resonating_arrow" );
   cleave -> add_action( "wildfire_bomb,if=full_recharge_time<gcd" );
-  cleave -> add_action( "chakrams" );
   cleave -> add_action( "butchery,if=dot.shrapnel_bomb.ticking&(dot.internal_bleeding.stack<2|dot.shrapnel_bomb.remains<gcd)" );
   cleave -> add_action( "carve,if=dot.shrapnel_bomb.ticking" );
-  cleave -> add_action( "death_chakram,if=focus+cast_regen<focus.max" );
   cleave -> add_action( "coordinated_assault" );
   cleave -> add_action( "butchery,if=charges_fractional>2.5&cooldown.wildfire_bomb.full_recharge_time>spell_targets%2" );
   cleave -> add_action( "flanking_strike,if=focus+cast_regen<focus.max" );
-  cleave -> add_action( "carve,if=cooldown.wildfire_bomb.full_recharge_time>spell_targets%2&talent.alpha_predator.enabled" );
-  cleave -> add_action( "kill_command,target_if=min:bloodseeker.remains,if=focus+cast_regen<focus.max&full_recharge_time<gcd&(runeforge.nessingwarys_trapping_apparatus.equipped&cooldown.freezing_trap.remains&cooldown.tar_trap.remains|!runeforge.nessingwarys_trapping_apparatus.equipped)" );
   cleave -> add_action( "wildfire_bomb,if=!dot.wildfire_bomb.ticking" );
   cleave -> add_action( "butchery,if=(!next_wi_bomb.shrapnel|!talent.wildfire_infusion.enabled)&cooldown.wildfire_bomb.full_recharge_time>spell_targets%2" );
   cleave -> add_action( "carve,if=cooldown.wildfire_bomb.full_recharge_time>spell_targets%2" );
@@ -362,7 +341,6 @@ void survival( player_t* p )
   cleave -> add_action( "steel_trap" );
   cleave -> add_action( "serpent_sting,target_if=min:remains,if=refreshable&talent.hydras_bite.enabled&target.time_to_die>8" );
   cleave -> add_action( "carve" );
-  cleave -> add_action( "kill_command,target_if=focus+cast_regen<focus.max&(runeforge.nessingwarys_trapping_apparatus.equipped&cooldown.freezing_trap.remains&cooldown.tar_trap.remains|!runeforge.nessingwarys_trapping_apparatus.equipped)" );
   cleave -> add_action( "serpent_sting,target_if=min:remains,if=refreshable" );
   cleave -> add_action( "mongoose_bite,target_if=max:debuff.latent_poison_injection.stack" );
   cleave -> add_action( "raptor_strike,target_if=max:debuff.latent_poison_injection.stack" );

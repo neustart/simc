@@ -381,27 +381,6 @@ public:
     buff_t* ascendance;
     buff_t* ghost_wolf;
 
-    // Covenant Class Ability Buffs
-    buff_t* primordial_wave;
-    buff_t* vesper_totem;
-
-    // Legendaries
-    buff_t* chains_of_devastation_chain_heal;
-    buff_t* chains_of_devastation_chain_lightning;
-    buff_t* echoes_of_great_sundering;
-    buff_t* windspeakers_lava_resurgence;
-    buff_t* doom_winds_buff;
-    buff_t* doom_winds_debuff;
-    buff_t* legacy_of_the_frost_witch;
-    buff_t* primal_lava_actuators;
-    buff_t* witch_doctors_wolf_bones;
-
-    buff_t* elemental_equilibrium;
-    buff_t* elemental_equilibrium_debuff;
-    buff_t* elemental_equilibrium_fire;
-    buff_t* elemental_equilibrium_frost;
-    buff_t* elemental_equilibrium_nature;
-
     // Elemental, Restoration
     buff_t* lava_surge;
 
@@ -2650,11 +2629,7 @@ struct windfury_attack_t : public shaman_attack_t
 
     m *= 1.0 + p()->buff.forceful_winds->stack_value();
 
-    if ( p()->buff.doom_winds_buff->check() )
-    {
-      m *= 1.0 + p()->buff.doom_winds_buff->data().effectN( 3 ).percent();
-    }
-
+    
     return m;
   }
 
@@ -2758,10 +2733,7 @@ struct stormstrike_attack_t : public shaman_attack_t
       m *= p()->talent.stormflurry->effectN( 2 ).percent();
     }
 
-    if ( !stormflurry )
-    {
-      m *= 1.0 + p()->buff.legacy_of_the_frost_witch->stack_value();
-    }
+  
 
     return m;
   }
@@ -3183,7 +3155,6 @@ struct lava_lash_t : public shaman_attack_t
       m *= 1.0 + data().effectN( 2 ).percent();
     }
 
-    m *= 1.0 + p()->buff.primal_lava_actuators->stack_value();
 
     return m;
   }
@@ -3199,7 +3170,6 @@ struct lava_lash_t : public shaman_attack_t
   {
     shaman_attack_t::execute();
 
-    p()->buff.primal_lava_actuators->expire();
   }
 
   void impact( action_state_t* state ) override
@@ -3328,7 +3298,6 @@ struct stormstrike_base_t : public shaman_attack_t
 
     p()->trigger_deeply_rooted_elements( execute_state );
 
-    p()->buff.legacy_of_the_frost_witch->expire();
   }
 
   void reset() override
@@ -3982,11 +3951,6 @@ struct chain_lightning_t : public chained_base_t
       t *= 1 + p()->talent.stormkeeper->effectN( 1 ).percent();
     }
 
-    if ( p()->buff.chains_of_devastation_chain_lightning->up() )
-    {
-      t *= 1 + p()->buff.chains_of_devastation_chain_lightning->data().effectN( 1 ).percent();
-    }
-
     return t;
   }
 
@@ -4203,11 +4167,7 @@ struct lava_burst_overload_t : public elemental_overload_spell_t
       m *= 1.0 + p()->cache.spell_crit_chance();
     }
 
-    // Buff damage in both "snapshotted" and "current state" cases
-    if ( wlr_buffed_impact || p()->buff.windspeakers_lava_resurgence->up() )
-    {
-      m *= 1.0 + p()->buff.windspeakers_lava_resurgence->data().effectN( 1 ).percent();
-    }
+   
 
     return m;
   }
@@ -4502,7 +4462,6 @@ struct lava_burst_t : public shaman_spell_t
   {
     shaman_spell_t::snapshot_internal( s, flags, rt );
 
-    cast_state( s )->wlr_buffed = p()->buff.windspeakers_lava_resurgence->check();
   }
 
   void snapshot_impact_state( action_state_t* s, result_amount_type rt )
@@ -4550,9 +4509,6 @@ struct lava_burst_t : public shaman_spell_t
         p()->buff.surge_of_power->decrement();
       }
 
-      if ( p()->buff.windspeakers_lava_resurgence->up() ) {
-        p()->buff.windspeakers_lava_resurgence->expire();
-      }
     }
 
     stats = normal_stats;
@@ -4567,11 +4523,6 @@ struct lava_burst_t : public shaman_spell_t
       m *= 1.0 + p()->cache.spell_crit_chance();
     }
 
-    // Buff damage in both "snapshotted" and "current state" cases
-    if ( wlr_buffed_impact || p()->buff.windspeakers_lava_resurgence->up() )
-    {
-      m *= 1.0 + p()->buff.windspeakers_lava_resurgence->data().effectN( 1 ).percent();
-    }
 
     return m;
   }
@@ -4628,17 +4579,7 @@ struct lava_burst_t : public shaman_spell_t
 
     p()->lava_surge_during_lvb = false;
 
-    // Trigger primordial wave if there's targets to trigger it on
-    if ( p()->specialization() == SHAMAN_ELEMENTAL && type == lava_burst_type::NORMAL &&
-         p()->buff.primordial_wave->up() && p()->action.lava_burst_pw )
-    {
-      p()->buff.primordial_wave->expire();
-      p()->action.lava_burst_pw->set_target( execute_state->target );
-      if ( !p()->action.lava_burst_pw->target_list().empty() )
-      {
-        p()->action.lava_burst_pw->schedule_execute();
-      }
-    }
+    
 
     if ( type == lava_burst_type::NORMAL )
     {
@@ -4828,18 +4769,7 @@ struct lightning_bolt_t : public shaman_spell_t
 
   void execute() override
   {
-    // PW needs to execute before the primary spell executes so we can retain proper
-    // Maelstrom Weapon stacks for the AoE Lightning Bolt
-    if ( p()->specialization() == SHAMAN_ENHANCEMENT &&
-         type == lightning_bolt_type::NORMAL && p()->buff.primordial_wave->up() )
-    {
-      p()->action.lightning_bolt_pw->set_target( target );
-      if ( !p()->action.lightning_bolt_pw->target_list().empty() )
-      {
-        p()->action.lightning_bolt_pw->execute();
-      }
-      p()->buff.primordial_wave->expire();
-    }
+ 
 
     shaman_spell_t::execute();
 
@@ -5084,11 +5014,6 @@ struct earthquake_damage_t : public shaman_spell_t
       m *= 1.0 + p()->buff.master_of_the_elements->default_value;
     }
 
-    if ( p()->buff.echoes_of_great_sundering->up() )
-    {
-      m *= 1.0 + p()->buff.echoes_of_great_sundering->value();
-    }
-
     return m;
   }
 };
@@ -5129,7 +5054,6 @@ struct earthquake_t : public shaman_spell_t
     // Note, needs to be decremented after ground_aoe_event_t is created so that the rumble gets the
     // buff multiplier as persistent.
     p()->buff.master_of_the_elements->expire();
-    p()->buff.echoes_of_great_sundering->expire();
   }
 };
 
@@ -5882,11 +5806,7 @@ struct chain_heal_t : public shaman_heal_t
   {
     timespan_t t = shaman_heal_t::execute_time();
 
-    if ( p()->buff.chains_of_devastation_chain_heal->up() )
-    {
-      t *= 1 + p()->buff.chains_of_devastation_chain_heal->data().effectN( 1 ).percent();
-    }
-
+    
     return t;
   }
 
@@ -5951,10 +5871,7 @@ struct windfury_totem_t : public shaman_spell_t
 
     p()->buffs.windfury_totem->trigger();
 
-    if ( !p()->buff.doom_winds_debuff->up() )
-    {
-      p()->buff.doom_winds_buff->trigger();
-    }
+    
   }
 
   bool ready() override
@@ -7366,36 +7283,6 @@ void shaman_t::trigger_elemental_equilibrium( const action_state_t* state )
     return;
   }
 
-  if ( buff.elemental_equilibrium_debuff->check() )
-  {
-    return;
-  }
-
-  if ( dbc::is_school( school, SCHOOL_FIRE ) )
-  {
-    buff.elemental_equilibrium_fire->trigger();
-  }
-
-  if ( dbc::is_school( school, SCHOOL_FROST ) )
-  {
-    buff.elemental_equilibrium_frost->trigger();
-  }
-
-  if ( dbc::is_school( school, SCHOOL_NATURE ) )
-  {
-    buff.elemental_equilibrium_nature->trigger();
-  }
-
-  if ( buff.elemental_equilibrium_fire->up() &&
-       buff.elemental_equilibrium_frost->up() &&
-       buff.elemental_equilibrium_nature->up() )
-  {
-    buff.elemental_equilibrium->trigger();
-    buff.elemental_equilibrium_debuff->trigger();
-    buff.elemental_equilibrium_fire->expire();
-    buff.elemental_equilibrium_frost->expire();
-    buff.elemental_equilibrium_nature->expire();
-  }
 }
 
 void shaman_t::trigger_deeply_rooted_elements( const action_state_t* state )
@@ -7498,7 +7385,6 @@ void shaman_t::trigger_windfury_weapon( const action_state_t* state )
   double proc_chance = spell.windfury_weapon->proc_chance();
   proc_chance += cache.mastery() * mastery.enhanced_elements->effectN( 4 ).mastery_value();
 
-  proc_chance += buff.doom_winds_buff->stack_value();
 
   if ( state->action->weapon->slot == SLOT_MAIN_HAND && rng().roll( proc_chance ) )
   {
@@ -7535,7 +7421,6 @@ void shaman_t::trigger_maelstrom_weapon( const action_state_t* state )
   }
 
   double proc_chance = spec.maelstrom_weapon->proc_chance();
-  proc_chance += buff.witch_doctors_wolf_bones->stack_value();
 
   if ( rng().roll( proc_chance ) )
   {
@@ -7682,15 +7567,6 @@ void shaman_t::create_buffs()
   buff.wind_gust = make_buff( this, "wind_gust", find_spell( 263806 ) )
                        ->set_default_value( find_spell( 263806 )->effectN( 1 ).percent() );
 
-  buff.echoes_of_great_sundering = make_buff( this, "echoes_of_great_sundering", find_spell( 336217 ) )
-                                       ->set_default_value( find_spell( 336217 )->effectN( 2 ).percent() );
-
-  buff.chains_of_devastation_chain_heal = make_buff( this, "chains_of_devastation_chain_heal", find_spell( 329772 ) );
-  buff.chains_of_devastation_chain_lightning =
-      make_buff( this, "chains_of_devastation_chain_lightning", find_spell( 329771 ) );
-
-  buff.windspeakers_lava_resurgence = make_buff( this, "windspeakers_lava_resurgence", find_spell( 336065 ) )
-                            ->set_default_value( find_spell( 336065 )->effectN( 1 ).percent() );
 
   // PvP
   buff.thundercharge = make_buff( this, "thundercharge", find_spell( 204366 ) )
@@ -7757,28 +7633,6 @@ void shaman_t::create_buffs()
       make_buff( this, "tidal_waves", spec.tidal_waves->ok() ? find_spell( 53390 ) : spell_data_t::not_found() );
 
 
-  
-  buff.doom_winds_debuff = make_buff<buff_t>( this, "doom_winds_debuff",
-    buff.doom_winds_buff->data().effectN( 2 ).trigger() );
-  buff.legacy_of_the_frost_witch = make_buff<buff_t>( this, "legacy_of_the_frost_witch",
-      find_spell( 335901 ) )
-    ->set_default_value_from_effect_type( A_ADD_PCT_MODIFIER, P_GENERIC );
-  buff.primal_lava_actuators = make_buff<buff_t>( this, "primal_lava_actuators",
-      find_spell( 335896 ) )
-    ->set_default_value_from_effect_type( A_ADD_PCT_MODIFIER, P_GENERIC );
-  
-  buff.elemental_equilibrium = make_buff<buff_t>( this, "elemental_equilibrium",
-      find_spell( 347348 ) )
-    ->set_default_value_from_effect_type( A_MOD_DAMAGE_PERCENT_DONE )
-    ->add_invalidate( CACHE_PLAYER_DAMAGE_MULTIPLIER );
-  buff.elemental_equilibrium_debuff = make_buff<buff_t>( this, "elemental_equilibrium_debuff",
-      find_spell( 347349 ) );
-  buff.elemental_equilibrium_frost = make_buff<buff_t>( this, "elemental_equilibrium_frost",
-      find_spell( 336731 ) );
-  buff.elemental_equilibrium_nature = make_buff<buff_t>( this, "elemental_equilibrium_nature",
-      find_spell( 336732 ) );
-  buff.elemental_equilibrium_fire = make_buff<buff_t>( this, "elemental_equilibrium_fire",
-      find_spell( 336733 ) );
 }
 
 // shaman_t::init_gains =====================================================
@@ -8011,12 +7865,7 @@ void shaman_t::init_action_list_elemental()
     def->add_action( "ancestral_call,if=!talent.ascendance.enabled|buff.ascendance.up|cooldown.ascendance.remains>50" );
     def->add_action( "bag_of_tricks,if=!talent.ascendance.enabled|!buff.ascendance.up" );
 
-    // Covenants
-    def->add_action(
-        "primordial_wave,target_if=min:dot.flame_shock.remains,cycle_targets=1,if=!buff.primordial_wave.up" );
-    def->add_action( "vesper_totem,if=covenant.kyrian" );
-    def->add_action( "fae_transfusion,if=covenant.night_fae" );
-
+    
     // Pick APL to run
     def->add_action(
         "run_action_list,name=aoe,if=active_enemies>2&(spell_targets.chain_lightning>2|spell_targets.lava_beam>2)" );
@@ -8190,11 +8039,6 @@ void shaman_t::init_action_list_elemental()
     def->add_action( "ancestral_call,if=!talent.ascendance.enabled|buff.ascendance.up|cooldown.ascendance.remains>50" );
     def->add_action( "bag_of_tricks,if=!talent.ascendance.enabled|!buff.ascendance.up" );
 
-    // Covenants
-    def->add_action( "primordial_wave,if=covenant.necrolord&!buff.primordial_wave.up" );
-    def->add_action( "vesper_totem,if=covenant.kyrian" );
-    def->add_action( "chain_harvest,if=covenant.venthyr" );
-    def->add_action( "fae_transfusion,if=covenant.night_fae" );
 
     // Pick APL to run
     def->add_action(
@@ -8283,8 +8127,8 @@ void shaman_t::init_action_list_enhancement()
   // Turn on auto-attack first thing
   def->add_action( "auto_attack" );
 
-  // Heart of Azeroth major essence
-  def->add_action( "heart_essence" );
+  //// Heart of Azeroth major essence
+  //def->add_action( "heart_essence" );
 
   // Use items
   def->add_action( "use_items" );
@@ -8297,7 +8141,6 @@ void shaman_t::init_action_list_enhancement()
   def->add_action( "bag_of_tricks,if=!talent.ascendance.enabled|!buff.ascendance.up" );
 
   def->add_action( this, "Feral Spirit" );
-  def->add_action("fae_transfusion,if=(talent.ascendance.enabled|runeforge.doom_winds.equipped)&(soulbind.grove_invigoration|soulbind.field_of_blossoms|active_enemies=1)");
   def->add_talent( this, "Ascendance", "if=raid_event.adds.in>=90|active_enemies>1" );
   def->add_action( this, "Windfury Totem", "if=runeforge.doom_winds.equipped&buff.doom_winds_debuff.down&(raid_event.adds.in>=60|active_enemies>1)");
   def->add_action( "call_action_list,name=single,if=active_enemies=1", "If only one enemy, priority follows the 'single' action list." );
@@ -8333,11 +8176,9 @@ void shaman_t::init_action_list_enhancement()
   single->add_action(this, "Windfury Totem", "if=buff.windfury_totem.remains<30");
 
   aoe->add_action("windstrike,if=buff.crash_lightning.up");
-  aoe->add_action("fae_transfusion,if=soulbind.grove_invigoration|soulbind.field_of_blossoms");
   aoe->add_action(this, "Crash Lightning", "if=runeforge.doom_winds.equipped&buff.doom_winds.up");
   aoe->add_action(this, "Frost Shock", "if=buff.hailstorm.up");
   aoe->add_talent(this, "Sundering");
-  aoe->add_action(this, "Flame Shock", "target_if=refreshable,cycle_targets=1,if=talent.fire_nova.enabled|talent.lashing_flames.enabled|covenant.necrolord|runeforge.primal_lava_actuators.equipped");
   aoe->add_action("primordial_wave,target_if=min:dot.flame_shock.remains,cycle_targets=1,if=!buff.primordial_wave.up");
   aoe->add_talent(this, "Fire Nova", "if=active_dot.flame_shock>=3");
   aoe->add_action("vesper_totem");
@@ -8397,17 +8238,7 @@ void shaman_t::init_action_list_restoration_dps()
   def->add_action( "ancestral_call,if=!talent.ascendance.enabled|buff.ascendance.up|cooldown.ascendance.remains>50" );
   def->add_action( "bag_of_tricks,if=!talent.ascendance.enabled|!buff.ascendance.up" );
 
-  // Covenants
-  def->add_action( "chain_harvest,if=covenant.venthyr" );
-  def->add_action( "vesper_totem,if=covenant.kyrian" );
-
-  def->add_action( this, "Lava Burst", "if=dot.flame_shock.remains>cast_time&cooldown_react" );
-  def->add_action( "fae_transfusion,if=covenant.night_fae" );
-  def->add_action( "primordial_wave,if=covenant.necrolord" );
-  def->add_action( this, "Lightning Bolt", "if=spell_targets.chain_lightning<3" );
-  def->add_action( this, "Chain Lightning", "if=spell_targets.chain_lightning>2" );
-  def->add_action( this, "Flame Shock", "moving=1" );
-  def->add_action( this, "Frost Shock", "moving=1" );
+  
 }
 
 // shaman_t::init_actions ===================================================
@@ -8696,7 +8527,6 @@ double shaman_t::composite_player_multiplier( school_e school ) const
 {
   double m = player_t::composite_player_multiplier( school );
 
-  m *= 1.0 + buff.elemental_equilibrium->stack_value();
 
   return m;
 }
@@ -8730,7 +8560,6 @@ double shaman_t::composite_player_pet_damage_multiplier( const action_state_t* s
   // Enhancement
   m *= 1.0 + spec.enhancement_shaman->effectN( 3 ).percent();
 
-  m *= 1.0 + buff.elemental_equilibrium->stack_value();
 
   return m;
 }
@@ -8766,7 +8595,6 @@ void shaman_t::combat_begin()
 {
   player_t::combat_begin();
 
-  buff.witch_doctors_wolf_bones->trigger();
 }
 
 // shaman_t::reset ==========================================================

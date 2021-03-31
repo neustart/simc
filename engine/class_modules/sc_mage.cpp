@@ -6135,8 +6135,6 @@ void mage_t::arise()
       events.focus_magic = make_event<events::focus_magic_event_t>( *sim, *this, period );
     }
 
-    if ( options.focus_magic_trade && !external_buffs.focus_magic )
-      player_t::buffs.focus_magic->override_buff();
   }
 
   if ( talents.from_the_ashes->ok() )

@@ -3154,34 +3154,11 @@ void player_t::create_buffs()
     if ( !is_pet() )
     {
       
-      buffs.reckless_force = make_buff( this, "reckless_force", find_spell( 302932 ) )
-        ->add_invalidate(CACHE_CRIT_CHANCE)
-        ->set_default_value( find_spell( 302932 )->effectN( 1 ).percent() );
-
-      buffs.reckless_force_counter = make_buff( this, "reckless_force_counter", find_spell( 302917 ) );
-
-      buffs.lifeblood = make_buff<stat_buff_t>( this, "lifeblood", find_spell( 295137 ) );
-
-      buffs.seething_rage = make_buff( this, "seething_rage", find_spell( 297126 ) )
-        ->set_default_value( find_spell( 297126 )->effectN( 1 ).percent() );
-
-      buffs.guardian_of_azeroth = make_buff( this, "guardian_of_azeroth", find_spell( 295855 ) )
-        ->set_default_value( find_spell( 295855 )->effectN( 1 ).percent() )
-        ->add_invalidate( CACHE_HASTE );
-
       buffs.windfury_totem = make_buff<buff_t>( this, "windfury_totem", find_spell( 327942 ) )
         ->set_duration( sim->max_time * 3 )
         ->set_chance( as<double>( sim->overrides.windfury_totem ) );
 
-      // 9.0 class buffs
-      buffs.focus_magic = make_buff( this, "focus_magic", find_spell( 321358 ) )
-        ->set_default_value_from_effect( 1 )
-        ->add_invalidate( CACHE_SPELL_CRIT_CHANCE );
-
-      buffs.power_infusion = make_buff( this, "power_infusion", find_spell( 10060 ) )
-        ->set_default_value_from_effect( 1 )
-        ->set_cooldown( 0_ms )
-        ->add_invalidate( CACHE_HASTE );
+     
 
     }
   }
@@ -3313,17 +3290,11 @@ double player_t::composite_melee_haste() const
     if ( buffs.berserking->up() )
       h *= 1.0 / ( 1.0 + buffs.berserking->data().effectN( 1 ).percent() );
 
-    if ( buffs.guardian_of_azeroth->check() )
-      h *= 1.0 / ( 1.0 + buffs.guardian_of_azeroth->check_stack_value() );
-
     h *= 1.0 / ( 1.0 + racials.nimble_fingers->effectN( 1 ).percent() );
     h *= 1.0 / ( 1.0 + racials.time_is_money->effectN( 1 ).percent() );
 
     if ( timeofday == NIGHT_TIME )
       h *= 1.0 / ( 1.0 + racials.touch_of_elune->effectN( 1 ).percent() );
-
-    if ( buffs.power_infusion )
-      h *= 1.0 / ( 1.0 + buffs.power_infusion->check_value() );
   }
 
   return h;
@@ -3333,11 +3304,6 @@ double player_t::composite_melee_speed() const
 {
   double h = composite_melee_haste();
 
-  if ( buffs.galeforce_striking && buffs.galeforce_striking->check() )
-    h *= 1.0 / ( 1.0 + buffs.galeforce_striking->check_value() );
-
-  if ( buffs.delirious_frenzy && buffs.delirious_frenzy->check() )
-    h *= 1.0 / ( 1.0 + buffs.delirious_frenzy->check_stack_value() );
 
   return h;
 }
@@ -3430,9 +3396,6 @@ double player_t::composite_melee_crit_chance() const
   for ( auto b : buffs.stat_pct_buffs[ STAT_PCT_BUFF_CRIT ] )
     ac += b->check_stack_value();
 
-  // The Unbound Force crit bonus from 20 stack proc
-  if (buffs.reckless_force)
-    ac += buffs.reckless_force->check_value();
 
   ac += racials.viciousness->effectN( 1 ).percent();
   ac += racials.arcane_acuity->effectN( 1 ).percent();
@@ -3653,17 +3616,11 @@ double player_t::composite_spell_haste() const
     if ( buffs.berserking->check() )
       h *= 1.0 / ( 1.0 + buffs.berserking->data().effectN( 1 ).percent() );
 
-    if ( buffs.guardian_of_azeroth->check() )
-      h *= 1.0 / ( 1.0 + buffs.guardian_of_azeroth->check_stack_value() );
-
     h *= 1.0 / ( 1.0 + racials.nimble_fingers->effectN( 1 ).percent() );
     h *= 1.0 / ( 1.0 + racials.time_is_money->effectN( 1 ).percent() );
 
     if ( timeofday == NIGHT_TIME )
       h *= 1.0 / ( 1.0 + racials.touch_of_elune->effectN( 1 ).percent() );
-
-    if ( buffs.power_infusion )
-      h *= 1.0 / ( 1.0 + buffs.power_infusion->check_value() );
   }
 
   return h;
@@ -3725,10 +3682,6 @@ double player_t::composite_spell_crit_chance() const
   for ( auto b : buffs.stat_pct_buffs[ STAT_PCT_BUFF_CRIT ] )
     sc += b->check_stack_value();
 
-  // reckless force (The Unbound Force) crit bonus from 20 stack proc
-  if (buffs.reckless_force)
-    sc += buffs.reckless_force->check_value();
-
   sc += racials.viciousness->effectN( 1 ).percent();
   sc += racials.arcane_acuity->effectN( 1 ).percent();
   if ( buffs.embrace_of_paku )
@@ -3739,8 +3692,6 @@ double player_t::composite_spell_crit_chance() const
     sc += racials.touch_of_elune->effectN( 1 ).percent();
   }
 
-  if ( buffs.focus_magic )
-    sc += buffs.focus_magic->check_value();
 
   return sc;
 }
@@ -3881,11 +3832,6 @@ double player_t::composite_player_multiplier( school_e school ) const
     m *= 1.0 + buffs.taste_of_mana->default_value;
   }
 
-  if ( buffs.torrent_of_elements && buffs.torrent_of_elements->check() && school != SCHOOL_PHYSICAL )
-  {
-    m *= 1.0 + buffs.torrent_of_elements->default_value;
-  }
-
   if ( buffs.damage_done && buffs.damage_done->check() )
   {
     m *= 1.0 + buffs.damage_done->check_stack_value();
@@ -3912,11 +3858,7 @@ double player_t::composite_player_target_multiplier( player_t* target, school_e 
     // stat buffs.
     m *= 1.0 + buffs.demon_damage_buff->data().effectN( 2 ).percent();
   }
-
-  if ( target->race == RACE_ABERRATION && buffs.damage_to_aberrations && buffs.damage_to_aberrations->check() )
-    m *= 1.0 + buffs.damage_to_aberrations->stack_value();
-
- 
+  
 
   auto td = find_target_data( target );
 
@@ -3958,16 +3900,7 @@ double player_t::composite_player_critical_damage_multiplier( const action_state
   {
     m *= 1.0 + buffs.incensed->check_value();
   }
-  // Critical hit damage buff from R3 Blood of the Enemy major on-use
-  if ( buffs.seething_rage )
-  {
-    m *= 1.0 + buffs.seething_rage->check_value();
-  }
-  // Critical hit damage buff from follower themed Benthic boots
-  if ( buffs.fathom_hunter )
-  {
-    m *= 1.0 + buffs.fathom_hunter->check_value();
-  }
+  
   return m;
 }
 
@@ -4013,10 +3946,6 @@ double player_t::temporary_movement_modifier() const
     if ( buffs.angelic_feather->check() )
       temporary = std::max( buffs.angelic_feather->data().effectN( 1 ).percent(), temporary );
 
-    if ( buffs.normalization_increase && buffs.normalization_increase->check() )
-    {
-      temporary = std::max( buffs.normalization_increase->data().effectN( 3 ).percent(), temporary );
-    }
   }
 
   return temporary;
@@ -4496,8 +4425,6 @@ void player_t::combat_begin()
       for ( auto t : times )
         make_event( *sim, t, [ buff ] { buff->trigger(); } );
   };
-
-  add_timed_buff_triggers( external_buffs.power_infusion, buffs.power_infusion );
 
   if ( buffs.windfury_totem )
   {
@@ -5346,8 +5273,6 @@ void player_t::arise()
   arise_time = sim->current_time();
   last_regen = sim->current_time();
 
-  if ( buffs.focus_magic && external_buffs.focus_magic )
-    buffs.focus_magic->override_buff();
 
   if ( is_enemy() )
   {
